@@ -1,0 +1,459 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\Hom}{\mathrm{Hom}}
+\newcommand{\Pol}{\mathrm{Pol}}
+\newcommand{\Csp}{\mathrm{CSP}}
+\newcommand{\Coh}{\mathsf{C}}
+\newcommand{\eqrel}{\mathrm{eq}}
+\newcommand{\sub}[2]{\tbinom{#1}{\le #2}}
+\newcommand{\size}[1]{\lVert #1\rVert}
+
+\title{Cohomological $k$-consistency is preserved under pp-constructions}
+\author{\emph{Draft note}}
+\date{23 November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We show that the class of finite templates whose CSP is solved by
+\'O~Conghaile's cohomological $k$-consistency algorithm, at constant or at
+sublinear level, is closed under pp-constructions. Consequently, whether the
+algorithm solves $\Csp(\mathbf A)$ depends only on the polymorphism minion of
+$\mathbf A$. Combined with the lower bound of Lichter and Pago for an
+NP-complete template (or that of Conneryd, Ghannane and Pang for
+3-colouring), this yields, without complexity-theoretic assumptions: if the
+algorithm solves $\Csp(\mathbf A)$ at sublinear level, then $\mathbf A$ has a
+Siggers polymorphism, equivalently the core of $\mathbf A$ has a weak
+near-unanimity polymorphism. The proofs are routine adaptations of arguments
+known for $k$-consistency; we record them because we could not find them
+stated for the cohomological algorithm.
+
+\smallskip\noindent\textbf{Superseded.} The follow-up \texttt{paper.tex} contains this
+result for both cohomological and $\mathbb Z$-affine $k$-consistency, together with new
+results on group coset-CSPs. For constant levels, minion invariance also follows from
+Barto, Hadek and Zhuk (arXiv:2604.06335, 2026).
+
+\smallskip\noindent\textbf{Status.} Draft, not refereed. Lemmas 2.2--3.3 and
+Theorem~\ref{thm:main} are machine-checked in Lean~4 with Mathlib
+(Section~\ref{sec:lean}); Corollaries~\ref{cor:minion} and~\ref{cor:taylor}
+use cited results and are not.
+\end{abstract}
+
+\section{Introduction}
+
+Cohomological $k$-consistency~\cite{OC22} combines the $k$-consistency
+procedure with the $\mathbb Z$-affine relaxation in which one local solution
+is fixed at a time. Lichter and Pago~\cite{LP25} showed that it solves a
+tractable template on which $\mathbb Z$-affine $k$-consistency, BLP+AIP,
+$\mathrm{BA}^k$ and CLAP all fail, that it fails on some NP-complete template
+at every sublinear level, and asked whether some tractable template defeats
+it. Conneryd, Ghannane and Pang~\cite{CGP26} (see also Chan and
+Ng~\cite{CN25}) proved linear-level lower bounds for 3-colouring and for lax,
+null-constraining templates.
+
+For the algorithms studied before, the analogous questions are answered with
+the help of one structural fact: solvability is preserved by gadget
+reductions, i.e.\ by pp-constructions in the sense of Barto, Opr\v{s}al and
+Pinsker~\cite{BOP18}. We prove this fact for cohomological $k$-consistency
+(Theorem~\ref{thm:main}) and record two consequences
+(Corollaries~\ref{cor:minion} and~\ref{cor:taylor}).
+
+\section{Preliminaries}
+
+\paragraph{Structures.} Signatures are finite and relational, all arities are
+at least~$1$. We use the same letter for a structure and its universe. For an
+instance $\mathbf B$ put
+$\size{\mathbf B} = |B| + \sum_R \mathrm{ar}(R)\,|R^{\mathbf B}|$. For
+$X\subseteq B$, $\mathbf B[X]$ is the induced substructure and
+$\Hom(\mathbf B[X],\mathbf A)$ the set of partial homomorphisms with domain
+$X$. We write $\sub{B}{k}$ for the set of subsets of $B$ of size at most $k$.
+
+\paragraph{The algorithm.} Let $\mathbf A$ be a template, $\mathbf B$ an
+instance and $k\ge 1$. A \emph{$k$-family} is a map $H$ assigning to each
+$X\in\sub{B}{k}$ a set $H(X)\subseteq \Hom(\mathbf B[X],\mathbf A)$. The
+system $\mathsf L(\mathbf B,H)$ has an integer variable $z_{X,f}$ for every
+$X\in\sub Bk$ and $f\in H(X)$, and the equations
+\begin{align}
+  \textstyle\sum_{f\in H(X)} z_{X,f} &= 1 && \text{for all } X\in\sub Bk, \tag{N}\\
+  \textstyle\sum_{f\in H(X),\ f|_Y=g} z_{X,f} &= z_{Y,g}
+    && \text{for all } Y\subsetneq X\in\sub Bk,\ g\in H(Y). \tag{C}
+\end{align}
+The \emph{$(X,f)$-pinned} system adds $z_{X,f}=1$ and $z_{X,f'}=0$ for all
+$f'\in H(X)\setminus\{f\}$. Following \cite[\S5.4]{LP25}, the algorithm
+$\Coh_k(\mathbf A)$ on input $\mathbf B$ is:
+\begin{enumerate}
+\item Set $H(X) := \Hom(\mathbf B[X],\mathbf A)$ for all $X\in\sub Bk$.
+\item Repeat until no $H(X)$ changes:
+  \begin{enumerate}
+  \item ($k$-consistency) While possible, remove from $H(X)$ any $f$ such
+    that $f|_Y\notin H(Y)$ for some $Y\subseteq X$, or such that $f$ has no
+    extension in $H(X')$ for some $X\subseteq X'\in\sub Bk$.
+  \item For each $X$ and $f\in H(X)$: if the $(X,f)$-pinned system
+    $\mathsf L(\mathbf B,H)$ has no integer solution, remove $f$.
+  \end{enumerate}
+\item Reject if $H(X)=\emptyset$ for some $X$; otherwise accept.
+\end{enumerate}
+
+\begin{definition}
+A $k$-family $H$ is \emph{stable} if
+(S1) it is down-closed: $f\in H(X)$, $Y\subseteq X$ imply $f|_Y\in H(Y)$;
+(S2) it has the forth property: for $Y\subseteq X$ in $\sub Bk$ every
+$f\in H(Y)$ has an extension in $H(X)$;
+(S3) for every $X$ and $f\in H(X)$ the $(X,f)$-pinned system
+$\mathsf L(\mathbf B,H)$ has an integer solution.
+It is \emph{nonempty} if $H(\emptyset)\neq\emptyset$; by (S2) all $H(X)$ are
+then nonempty.
+\end{definition}
+
+For a nondecreasing $k\colon\mathbb N\to\mathbb N$ we say that
+\emph{$\Coh$ solves $\Csp(\mathbf A)$ at level $k$} if for every instance
+$\mathbf B$, $\Coh_{k(\size{\mathbf B})}(\mathbf A)$ accepts $\mathbf B$ if
+and only if $\mathbf B\to\mathbf A$.
+
+\begin{lemma}\label{lem:stable}
+$\Coh_k(\mathbf A)$ accepts $\mathbf B$ if and only if there is a nonempty
+stable $k$-family for $(\mathbf B,\mathbf A)$.
+\end{lemma}
+\begin{proof}
+If the algorithm accepts, the final $H$ is unchanged by steps (a) and (b), so
+it satisfies (S1)--(S3), and it is nonempty.
+
+Conversely let $S$ be nonempty and stable. We show that $S(X)\subseteq H(X)$
+for all $X$ holds throughout the run. It holds initially. Step (a) never
+removes some $f\in S(X)$ while the invariant holds, because its restrictions
+lie in $S\subseteq H$ by (S1) and its required extensions exist in
+$S\subseteq H$ by (S2). For step (b), let $f\in S(X)$ and let $z$ solve the
+$(X,f)$-pinned system $\mathsf L(\mathbf B,S)$. Define $\hat z_{Y,g}=z_{Y,g}$
+if $g\in S(Y)$ and $\hat z_{Y,g}=0$ otherwise. Equations (N) and the pinning
+hold for $\hat z$. For (C) with $Y\subsetneq X'$ and $g\in H(Y)$: if
+$g\in S(Y)$, the left-hand side only sees $S(X')$ and equals $z_{Y,g}$; if
+$g\notin S(Y)$, no element of $S(X')$ restricts to $g$, by (S1), so both
+sides are $0$. Hence $f$ is not removed. At the end $H\supseteq S$ is
+nonempty and the algorithm accepts.
+\end{proof}
+
+The proof only uses that each removed element fails a check against the
+current family. Hence the outcome does not depend on the order of removals,
+nor on whether step~(b) removes elements one at a time or all at once.
+
+\begin{lemma}\label{lem:basic}
+(i) If $\mathbf B\to\mathbf A$ then $\Coh_k(\mathbf A)$ accepts $\mathbf B$
+for every $k$. (ii) If $k\le k'$ and $\Coh_{k'}(\mathbf A)$ accepts
+$\mathbf B$, then $\Coh_k(\mathbf A)$ accepts $\mathbf B$.
+\end{lemma}
+\begin{proof}
+(i) For a homomorphism $h$, the family $S(X)=\{h|_X\}$ with $z_{X,h|_X}=1$ is
+nonempty and stable. (ii) Restricting a nonempty stable $k'$-family to
+$\sub Bk$ preserves (S1) and (S2), and restricting a solution preserves (S3),
+since the equations for sets of size at most $k$ are among those for size at
+most $k'$.
+\end{proof}
+
+\paragraph{pp-powers and pp-constructions~\cite{BOP18}.} Let $\Gamma$ be a
+$\sigma$-structure with universe $G$, and let $\Gamma^{=}$ be its expansion by
+a binary symbol $\eqrel$ interpreted as equality. A primitive positive (pp)
+formula over $\sigma\cup\{\eqrel\}$ is $\exists\bar y\,\bigwedge_t S_t(\bar
+w_t)$ with $S_t\in\sigma\cup\{\eqrel\}$; equality atoms are written with
+$\eqrel$, so every pp-formula over $\sigma$ in the usual sense is of this
+form. A \emph{$d$-th pp-power} of $\Gamma$ is a $\tau$-structure $\Delta$ with
+universe $G^d$ such that for each $R\in\tau$ of arity $r$ there is a
+pp-formula $\varphi_R(x_{1,1},\dots,x_{r,d})$ over $\sigma\cup\{\eqrel\}$ with
+$R^\Delta=\{(\bar a_1,\dots,\bar a_r) : \Gamma^{=}\models
+\varphi_R(\bar a_1,\dots,\bar a_r)\}$. A structure is
+\emph{pp-constructible} from $\Gamma$ if it is the last member of a sequence
+starting at $\Gamma$ in which each member is a pp-power of, or homomorphically
+equivalent to, the previous one.
+
+\section{Three reductions}
+
+\begin{lemma}[template homomorphisms]\label{lem:hom}
+Let $h\colon\mathbf A\to\mathbf A'$ be a homomorphism. If $\Coh_k(\mathbf A)$
+accepts $\mathbf B$, then $\Coh_k(\mathbf A')$ accepts $\mathbf B$.
+\end{lemma}
+\begin{proof}
+Let $S$ be nonempty and stable for $(\mathbf B,\mathbf A)$ and put
+$S'(X)=\{h\circ f: f\in S(X)\}$. These are partial homomorphisms into
+$\mathbf A'$, and (S1), (S2) transfer directly. For (S3) let $g\in S'(X)$,
+choose $f\in S(X)$ with $h\circ f=g$, let $z$ solve the $(X,f)$-pinned system,
+and set $z'_{Y,g'}=\sum_{f'\in S(Y),\,h\circ f'=g'} z_{Y,f'}$. Equation (N) is
+immediate. For (C), with $Y\subsetneq X'$ and $g''\in S'(Y)$,
+\[
+\sum_{\substack{g'\in S'(X')\\ g'|_Y=g''}} z'_{X',g'}
+=\sum_{\substack{f''\in S(Y)\\ h\circ f''=g''}}\ \sum_{\substack{f'\in S(X')\\ f'|_Y=f''}} z_{X',f'}
+=\sum_{\substack{f''\in S(Y)\\ h\circ f''=g''}} z_{Y,f''}=z'_{Y,g''},
+\]
+using (S1) to regroup. Only $z_{X,f}$ is nonzero on $S(X)$, so
+$z'_{X,g}=1$ and $z'_{X,g'}=0$ for $g'\neq g$.
+\end{proof}
+
+\paragraph{Gadget instances.} Let $\Delta$ be a $d$-th pp-power of $\Gamma$
+with formulas $\varphi_R=\exists y_1\dots y_{m_R}\bigwedge_t S_t(\bar w_t)$,
+and let $\mathbf I$ be a $\Delta$-instance with universe $V$. A
+\emph{constraint} of $\mathbf I$ is a pair $e=(R,\bar v)$ with
+$\bar v\in R^{\mathbf I}$; write $\mathrm{sc}(e)$ for the set of entries of
+$\bar v$. The $\Gamma^{=}$-instance $\mathbf I^\sharp$ has universe
+$V\times[d]$ together with fresh elements $(e,j)$ for each constraint $e$ and
+$j\le m_R$; for each constraint $e=(R,\bar v)$ and each atom $S_t(\bar w_t)$
+of $\varphi_R$ it contains the tuple obtained from $\bar w_t$ by substituting
+$x_{a,i}\mapsto(v_a,i)$ and $y_j\mapsto(e,j)$. As usual,
+$\mathbf I\to\Delta$ if and only if $\mathbf I^\sharp\to\Gamma^{=}$, and
+$\size{\mathbf I^\sharp}\le c\,\size{\mathbf I}$ for a constant $c$ that
+depends only on the formulas.
+
+\begin{lemma}[pp-powers]\label{lem:power}
+Let $r$ be the maximal arity in $\Delta$. If $\Coh_{r(k+1)}(\Delta)$ accepts
+$\mathbf I$, then $\Coh_k(\Gamma^{=})$ accepts $\mathbf I^\sharp$.
+\end{lemma}
+\begin{proof}
+Let $S$ be a nonempty stable $r(k+1)$-family for $(\mathbf I,\Delta)$. For
+each $R$ and $\bar a\in R^\Delta$ fix a witness $W_R(\bar a)\in G^{m_R}$ for
+$\varphi_R(\bar a)$. For $X\subseteq I^\sharp$ let
+\[
+\sigma(X)=\{v:(v,i)\in X\}\ \cup\bigcup_{(e,j)\in X}\mathrm{sc}(e),
+\]
+so $|\sigma(X)|\le r|X|$ and $\sigma$ is monotone. For
+$f\in\Hom(\mathbf I[\sigma(X)],\Delta)$ define $\iota_X(f)\colon X\to G$ by
+$(v,i)\mapsto f(v)_i$ and $(e,j)\mapsto W_R(f(\bar v))_j$ for $e=(R,\bar v)$;
+this is well defined because $\mathrm{sc}(e)\subseteq\sigma(X)$ gives
+$f(\bar v)\in R^\Delta$. Clearly
+\begin{equation}\label{eq:natural}
+\iota_X(f)|_Y=\iota_Y(f|_{\sigma(Y)})\qquad\text{for } Y\subseteq X.
+\end{equation}
+For $X\in\sub{I^\sharp}k$ put $S^\sharp(X)=\{\iota_X(f): f\in
+S(\sigma(X))\}$; note $\sigma(X)\in\sub{V}{rk}$.
+
+\emph{Partial homomorphisms.} Let $\bar u$ be a tuple of $\mathbf I^\sharp$
+inside $X$, produced by the atom $S_t$ of the constraint $e=(R,\bar v)$, and
+let $f\in S(\sigma(X))$. If $\bar u$ contains some $(e,j)$, then
+$\mathrm{sc}(e)\subseteq\sigma(X)$ and the values of $\iota_X(f)$ on $\bar u$
+are entries of $f(\bar v)$ and of its witness $W_R(f(\bar v))$, which satisfy
+$S_t$. Otherwise all entries of $\bar u$ are of the form $(v_a,i)$ with
+$v_a\in\sigma(X)$. By (S2), $f$ extends to some
+$f^+\in S(\sigma(X)\cup\mathrm{sc}(e))$, a set of size at most $r(k+1)$. Then
+$f^+(\bar v)\in R^\Delta$ satisfies $\varphi_R$, the atom $S_t$ mentions only
+free variables, and $f^+$ agrees with $f$ on the relevant $v_a$; so
+$\iota_X(f)$ satisfies $S_t$ on $\bar u$.
+
+\emph{(S1), (S2).} Down-closure follows from \eqref{eq:natural} and (S1) for
+$S$. For forth, let $Y\subseteq X$ and $g=\iota_Y(f)$ with
+$f\in S(\sigma(Y))$; extend $f$ to $f^+\in S(\sigma(X))$ by (S2) for $S$;
+then $\iota_X(f^+)|_Y=\iota_Y(f)=g$ by \eqref{eq:natural}.
+
+\emph{(S3).} Let $g\in S^\sharp(X)$, choose $f\in S(\sigma(X))$ with
+$\iota_X(f)=g$, let $z$ solve the $(\sigma(X),f)$-pinned system
+$\mathsf L(\mathbf I,S)$, and set
+$z^\sharp_{Y,g'}=\sum_{f'\in S(\sigma(Y)),\,\iota_Y(f')=g'}z_{\sigma(Y),f'}$.
+(N) follows from (N) for $\sigma(Y)$. For (C), with $Y'\subsetneq Y$ and
+$g''\in S^\sharp(Y')$, by \eqref{eq:natural} and (S1),
+\[
+\sum_{\substack{g'\in S^\sharp(Y)\\ g'|_{Y'}=g''}} z^\sharp_{Y,g'}
+=\sum_{\substack{f''\in S(\sigma(Y'))\\ \iota_{Y'}(f'')=g''}}\ \
+ \sum_{\substack{f'\in S(\sigma(Y))\\ f'|_{\sigma(Y')}=f''}} z_{\sigma(Y),f'}
+=z^\sharp_{Y',g''},
+\]
+using (C) for $\sigma(Y')\subseteq\sigma(Y)$ (trivial if they are equal). The
+pinning holds because $z_{\sigma(X),\cdot}$ is supported on $f$ and
+$\iota_X(f)=g$. Finally $S^\sharp(\emptyset)\ne\emptyset$, and
+Lemma~\ref{lem:stable} applies.
+\end{proof}
+
+\paragraph{Quotients.} For a $\Gamma^{=}$-instance $\mathbf J$ let $\approx$
+be the equivalence relation generated by $\eqrel^{\mathbf J}$, and let
+$\mathbf J/{\approx}$ be the $\sigma$-structure on the classes with
+$R^{\mathbf J/\approx}=\{([u_1],\dots,[u_r]):\bar u\in R^{\mathbf J}\}$. Then
+$\mathbf J\to\Gamma^{=}$ if and only if $\mathbf J/{\approx}\to\Gamma$, and
+$\size{\mathbf J/{\approx}}\le\size{\mathbf J}$.
+
+\begin{lemma}[equality]\label{lem:eq}
+Let $\rho$ be the maximal arity in $\Gamma$. If
+$\Coh_{k+\rho+1}(\Gamma^{=})$ accepts $\mathbf J$, then $\Coh_k(\Gamma)$
+accepts $\mathbf J/{\approx}$.
+\end{lemma}
+\begin{proof}
+Let $S$ be a nonempty stable $(k+\rho+1)$-family for $(\mathbf J,\Gamma^=)$.
+
+\emph{Claim.} If $|Y|\le k+\rho$, $f\in S(Y)$ and $u,w\in Y$ with
+$u\approx w$, then $f(u)=f(w)$. By induction on the distance $\ell$ between
+$u$ and $w$ in the graph of $\eqrel^{\mathbf J}$; $\ell=0$ is trivial. For
+$\ell\ge1$ let $b$ be the neighbour of $u$ on a shortest path. By (S2), $f$
+extends to $f^+\in S(Y\cup\{b\})$, and $f^+(b)=f(u)$ since $f^+$ respects the
+$\eqrel$-tuple between $u$ and $b$. The set $Y_1=(Y\setminus\{u\})\cup\{b\}$
+has size at most $|Y|$ and contains $w$, $f^+|_{Y_1}\in S(Y_1)$ by (S1), and
+$b,w$ have distance $\ell-1$; so $f^+(b)=f^+(w)=f(w)$.
+
+Fix a representative $\mathrm{rep}(C)$ of each class $C$. For
+$X\in\sub{J/\approx}{k}$ let
+$S^\circ(X)=\{f\circ\mathrm{rep}|_X: f\in S(\mathrm{rep}(X))\}$. To see these
+are partial homomorphisms, let $([u_1],\dots,[u_r])$ with $\bar u\in
+R^{\mathbf J}$ have all entries in $X$ and let $f\in S(\mathrm{rep}(X))$.
+Extend $f$ by (S2) to $f^+$ on $Y=\mathrm{rep}(X)\cup\{u_1,\dots,u_r\}$,
+$|Y|\le k+\rho$. Then $f^+(\bar u)\in R^\Gamma$, and by the claim
+$f^+(u_a)=f(\mathrm{rep}[u_a])$ for all $a$. Since
+$\mathrm{rep}(Y)\subseteq\mathrm{rep}(X)$ for $Y\subseteq X$ and
+$f\mapsto f\circ\mathrm{rep}$ is a bijection
+$S(\mathrm{rep}(X))\to S^\circ(X)$, (S1)--(S3) transfer directly: the system
+$\mathsf L(\mathbf J/{\approx},S^\circ)$ is the subsystem of
+$\mathsf L(\mathbf J,S)$ indexed by sets of representatives.
+\end{proof}
+
+\section{Main result and consequences}
+
+\begin{theorem}\label{thm:main}
+Let $\Delta$ be pp-constructible from $\Gamma$. There are constants
+$a,b,c\ge1$ such that, if $\Coh$ solves $\Csp(\Gamma)$ at level $k$, then
+$\Coh$ solves $\Csp(\Delta)$ at level $n\mapsto a\,k(cn)+b$. In particular
+constant levels go to constant levels, and levels in $o(n)$ to levels in
+$o(n)$.
+\end{theorem}
+\begin{proof}
+By Lemma~\ref{lem:basic}(ii), solving at level $k$ implies solving at every
+pointwise larger level, so levels of the form $a\,k(cn)+b$ compose and the
+constants may be enlarged. By induction along the sequence it therefore
+suffices to treat one step. Soundness is Lemma~\ref{lem:basic}(i); we show that
+accepted instances are yes-instances.
+
+\emph{Homomorphic equivalence.} If $\Delta\to\Gamma$ and
+$\Coh_{k(n)}(\Delta)$ accepts $\mathbf B$ with $n=\size{\mathbf B}$, then
+$\Coh_{k(n)}(\Gamma)$ accepts $\mathbf B$ by Lemma~\ref{lem:hom}, so
+$\mathbf B\to\Gamma\to\Delta$.
+
+\emph{pp-power.} Let $\Delta$ be a pp-power of $\Gamma$, $r$ the maximal arity
+in $\Delta$, $\rho$ the maximal arity in $\Gamma$, $c$ the constant of the
+gadget construction, and suppose $\Coh_{r(k(cn)+\rho+2)}(\Delta)$ accepts
+$\mathbf I$ with $\size{\mathbf I}=n$. By Lemma~\ref{lem:power},
+$\Coh_{k(cn)+\rho+1}(\Gamma^=)$ accepts $\mathbf I^\sharp$; by
+Lemma~\ref{lem:eq}, $\Coh_{k(cn)}(\Gamma)$ accepts
+$\mathbf J=\mathbf I^\sharp/{\approx}$. As $\size{\mathbf J}\le cn$ and $k$ is
+nondecreasing, Lemma~\ref{lem:basic}(ii) shows that
+$\Coh_{k(\size{\mathbf J})}(\Gamma)$ accepts $\mathbf J$, hence
+$\mathbf J\to\Gamma$, so $\mathbf I^\sharp\to\Gamma^=$ and
+$\mathbf I\to\Delta$.
+\end{proof}
+
+\begin{corollary}[minion invariance]\label{cor:minion}
+If there is a minion homomorphism $\Pol(\Gamma)\to\Pol(\Delta)$ and $\Coh$
+solves $\Csp(\Gamma)$ at constant (respectively sublinear) level, then it
+solves $\Csp(\Delta)$ at constant (respectively sublinear) level. Hence
+whether $\Coh$ solves a template depends only on its polymorphism minion, up to
+homomorphic equivalence of minions.
+\end{corollary}
+\begin{proof}
+For finite structures a minion homomorphism $\Pol(\Gamma)\to\Pol(\Delta)$
+exists if and only if $\Delta$ is pp-constructible from
+$\Gamma$~\cite{BOP18}. Apply Theorem~\ref{thm:main}.
+\end{proof}
+
+\begin{corollary}[only Taylor templates]\label{cor:taylor}
+If $\Coh$ solves $\Csp(\Gamma)$ at some level $k\in o(n)$, then $\Gamma$ has a
+Siggers polymorphism; equivalently, the core of $\Gamma$ has a weak
+near-unanimity polymorphism.
+\end{corollary}
+\begin{proof}
+If $\Gamma$ has no Siggers polymorphism, then $\Gamma$ pp-constructs $K_3$,
+and therefore every finite structure~\cite{BOP18}; the equivalence with weak
+near-unanimity polymorphisms of the core is \cite{MM08,Sig10}. In particular
+$\Gamma$ pp-constructs the NP-complete template $\mathbf T$ of
+\cite[Theorem~1.3]{LP25}, which $\Coh$ does not solve at any level in $o(n)$.
+By Theorem~\ref{thm:main}, $\Coh$ would solve $\Csp(\mathbf T)$ at a level in
+$o(n)$, a contradiction. (Alternatively use $K_3$ itself and the lower bound
+of~\cite{CGP26}.)
+\end{proof}
+
+No complexity assumption is used: Corollary~\ref{cor:taylor} says that the
+algorithm, at sublinear level, fails on every template that the algebraic
+dichotomy~\cite{Bul17,Zhu20} classifies as NP-complete.
+
+\begin{remark}[what is known about the solved class]
+Let $\mathcal S$ be the class of templates solved by $\Coh$ at constant level.
+It contains all bounded-width templates~\cite{BK14}, since step (a) contains
+$k$-consistency; all Abelian coset-CSPs, since $\Coh_k$ accepts only
+instances that $\mathbb Z$-affine $k$-consistency accepts (zero-extend a
+pinned solution, as in Lemma~\ref{lem:stable}) and the latter solves them
+\cite[Theorem~1.2(1)]{LP25}; and the template of
+\cite[Theorem~1.1]{LP25}, by \cite[Theorem~1.3]{LP25}. By Theorem~\ref{thm:main} it is closed under
+pp-constructions, and by Corollary~\ref{cor:taylor} it is contained in the
+class of Taylor templates. Whether $\mathcal S$ equals that class is the open
+question of~\cite{LP25}.
+\end{remark}
+
+\begin{remark}[searching for a counterexample]
+If a tractable $\Gamma$ is not in $\mathcal S$, then neither is any template
+that pp-constructs $\Gamma$. A counterexample can therefore be sought among
+templates that are low in the pp-constructibility order. The coset-CSP over
+$S_{18}$ of \cite[Theorem~1.2]{LP25}, which defeats the other affine
+algorithms, is a natural candidate; we do not know whether $\Coh$ solves it.
+\end{remark}
+
+\begin{remark}[other algorithms]
+The proofs use step (b) only through property (S3). Dropping (S3) everywhere
+gives the same statements for $k$-consistency, and dropping the pinning gives
+them for $\mathbb Z$-affine $k$-consistency~\cite{DO24}; we expect these cases
+are known.
+\end{remark}
+
+\section{Formal verification}\label{sec:lean}
+
+The directory \texttt{lean/} next to this note contains a Lean~4 formalization
+(Mathlib, about 1300 lines). It covers the following:
+\begin{itemize}
+\item the algorithm as a removal process and Lemma~\ref{lem:stable} for every
+  removal order;
+\item Lemmas~\ref{lem:basic}, \ref{lem:hom}, \ref{lem:power} and~\ref{lem:eq};
+\item the size bounds $\size{\mathbf I^\sharp}\le c\size{\mathbf I}$ and
+  $\size{\mathbf J/{\approx}}\le\size{\mathbf J}$;
+\item Theorem~\ref{thm:main}, together with its specialisations to constant
+  and to $o(n)$ levels.
+\end{itemize}
+These results depend only on Lean's standard axioms. Lemmas~\ref{lem:basic}(ii),
+\ref{lem:hom}, \ref{lem:power} and~\ref{lem:eq} are derived from a single
+transfer lemma. It pushes a stable family forward along a map
+of domains $\sigma$ and a map $\iota$ that commutes with restriction, so each
+lemma only has to check its own partial-homomorphism property.
+The formalization differs from the text in three inessential ways:
+\begin{itemize}
+\item equation~(C) is stated for $Y\subseteq X$, which is equivalent to the
+  version with $Y\subsetneq X$;
+\item $\eqrel$ is the set of tuples with all entries equal;
+\item the constants in Theorem~\ref{thm:main} use $r=1+\sum_R\mathrm{ar}(R)$
+  instead of the maximal arity.
+\end{itemize}
+
+\begin{thebibliography}{99}
+\bibitem{BK14} L.~Barto and M.~Kozik. Constraint satisfaction problems
+solvable by local consistency methods. \emph{J. ACM} 61(1), 2014.
+\bibitem{BOP18} L.~Barto, J.~Opr\v{s}al and M.~Pinsker. The wonderland of
+reflections. \emph{Israel J. Math.} 223, 2018.
+\bibitem{Bul17} A.~Bulatov. A dichotomy theorem for nonuniform CSPs.
+\emph{FOCS} 2017.
+\bibitem{CN25} S.~O.~Chan and H.~T.~Ng. How random CSPs fool hierarchies~II.
+\emph{STOC} 2025; ECCC TR25-026.
+\bibitem{CGP26} Conneryd, Ghannane and Pang. Lower bounds for CSP hierarchies
+through ideal reduction. \emph{SODA} 2026; arXiv:2511.17272.
+\bibitem{DO24} V.~Dalmau and J.~Opr\v{s}al. Local consistency as a reduction
+between constraint satisfaction problems. \emph{LICS} 2024.
+\bibitem{LP25} M.~Lichter and B.~Pago. Limitations of affine integer
+relaxations for solving constraint satisfaction problems. \emph{ICALP} 2025;
+arXiv:2407.09097v3.
+\bibitem{MM08} M.~Mar\'oti and R.~McKenzie. Existence theorems for weakly
+symmetric operations. \emph{Algebra Universalis} 59, 2008.
+\bibitem{OC22} A.~\'O~Conghaile. Cohomology in constraint satisfaction and
+structure isomorphism. \emph{MFCS} 2022.
+\bibitem{Sig10} M.~Siggers. A strong Mal'cev condition for locally finite
+varieties omitting the unary type. \emph{Algebra Universalis} 64, 2010.
+\bibitem{Zhu20} D.~Zhuk. A proof of the CSP dichotomy conjecture.
+\emph{J. ACM} 67(5), 2020.
+\end{thebibliography}
+
+\end{document}

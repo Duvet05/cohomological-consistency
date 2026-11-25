@@ -1,0 +1,1192 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{mainthm}{Theorem}
+\renewcommand{\themainthm}{\Alph{mainthm}}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{example}[theorem]{Example}
+
+\newcommand{\Hom}{\mathrm{Hom}}
+\newcommand{\Pol}{\mathrm{Pol}}
+\newcommand{\Csp}{\mathrm{CSP}}
+\newcommand{\Coh}{\mathsf{C}}
+\newcommand{\Aff}{\mathsf{Z}}
+\newcommand{\sub}[2]{\tbinom{#1}{\le #2}}
+\newcommand{\size}[1]{\lVert #1\rVert}
+\newcommand{\Z}{\mathbb Z}
+\newcommand{\sg}{\operatorname{sg}}
+\newcommand{\rot}{\operatorname{rot}}
+\newcommand{\Sol}{\operatorname{Sol}}
+\newcommand{\Cohset}{\operatorname{Coh}}
+\newcommand{\mass}{\operatorname{mass}}
+\newcommand{\ORT}{\mathrm{OR}_{\mathrm T}}
+\newcommand{\cL}{\mathcal L}
+\newcommand{\Chars}{\widehat{A}}
+
+\title{Cohomological $k$-consistency on group coset-CSPs}
+\author{\emph{Draft}}
+\date{23 November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A coset-CSP over a finite group $G$ is a CSP whose relations are cosets of
+subgroups of powers of $G$; these CSPs have a Maltsev polymorphism and are
+tractable. We study \'O~Conghaile's cohomological $k$-consistency algorithm on
+them, and prove three results.
+
+\textbf{(A)} The algorithm solves every $r$-ary coset-CSP over every finite
+group $G$ that has a series of normal subgroups with abelian factors, each of
+order coprime to its index, on which $G$ acts through abelian groups. It does so
+at level $\max(3,r)$. Examples are $S_3$, $A_4$, the dihedral groups of order
+$2n$ with $n$ odd, all groups of square-free order, all groups whose Sylow
+subgroups are cyclic, and every group of order less than $24$ that is not a
+non-abelian $2$-group. Before this, the algorithm was known to solve coset-CSPs
+only over nilpotent groups.
+
+\textbf{(B)} Over every non-nilpotent group, none of the following solves the
+ternary coset-CSPs: $\Z$-affine $k$-consistency at any sublinear level, BLP+AIP and
+CLAP. So these algorithms can solve all coset-CSPs over $G$ only if $G$ is
+nilpotent. Lichter and Pago proved such failures over $S_d$ for $d\ge 18$, and
+success over $2$-nilpotent groups of odd order. For $S_3$ the ternary coset template
+even pp-constructs their 7-element counterexample. With (A), every non-abelian
+group in the class of (A), starting with $S_3$, separates cohomological
+$k$-consistency from these algorithms.
+
+\textbf{(C)} Solvability by cohomological $k$-consistency, and by $\Z$-affine
+$k$-consistency, at constant or at sublinear level, is preserved under
+pp-constructions.
+
+Part (C) and the reductions it rests on are machine-checked in Lean~4. The
+pp-constructions in (B) are checked by computer. Part (A) is proved on paper
+only. Its structural lemmas were tested on random instances over 13 groups.
+\end{abstract}
+
+\smallskip\noindent\textbf{Status.} Draft, not refereed. One independent
+internal check of Sections~\ref{sec:A}--\ref{sec:B} found no mathematical
+error. Claims of novelty are to the best of our knowledge as of November 2026.
+
+\section{Introduction}
+
+Ó~Conghaile's cohomological $k$-consistency~\cite{OC22}, here written $\Coh_k$,
+runs $k$-consistency and repeatedly removes every local solution that cannot be
+set to $1$ in an integer solution of the width-$k$ affine relaxation. It is one
+of the few simple uniform algorithms still in the running to solve every
+tractable finite-domain CSP. Lichter and Pago~\cite{LP25} showed that it solves
+a tractable 7-element template $\ORT[\Z_2^{[3]},\Z_3^{[3]}]$ on which
+$\Z$-affine $k$-consistency~\cite{DO24}, BLP+AIP~\cite{BGWZ20}, $\mathrm{BA}^k$
+and CLAP~\cite{CZ23} all fail. They also showed that it fails on an NP-complete
+template, and asked:
+
+\begin{quote}
+Is there a tractable finite template on which cohomological $k$-consistency
+fails for every constant (or sublinear) $k$?
+\end{quote}
+
+Natural test cases are the \emph{coset-CSPs}. Let $G$ be a finite group. The
+structure $G^{[r]}$ has universe $G$, and its relations are all cosets of
+subgroups of $G^r$, i.e., all $r$-ary relations preserved by the Maltsev operation
+$xy^{-1}z$. Lichter and Pago~\cite[Thm.~1.2]{LP25} showed the following:
+\begin{itemize}
+\item every affine algorithm above solves $\Csp(G^{[r]})$ for abelian $G$;
+\item they still solve it when $G$ is $2$-nilpotent of odd order;
+\item they all fail for $G=S_d$ with $d\ge 18$ and $r=2$.
+\end{itemize}
+Whether $\Coh$ solves $\Csp(S_{18}^{[2]})$ was left open.
+
+Two recent papers bear on this:
+\begin{itemize}
+\item Zhuk~\cite{Zhu25} showed that the singleton version of BLP+AIP solves
+every tractable CSP on at most $7$ elements, and fails on an 8-element template
+coming from the dihedral group $D_4$ (an example due to Kompatscher).
+\item Barto, Hadek and Zhuk~\cite{BHZ26} showed that the second level of AIP
+solves that $D_4$ template. They also described the levels of many algorithms,
+cohomological $k$-consistency among them, by minions.
+\end{itemize}
+
+Since $\Coh_k$ accepts only instances that $\Z$-affine $k$-consistency accepts
+(Lemma~\ref{lem:basic}), every coset-CSP solved by the latter is solved by
+$\Coh$. Before this note, the groups $G$ for which $\Coh$ was known to solve
+$\Csp(G^{[r]})$ for all $r$ were therefore nilpotent: abelian groups and
+$2$-nilpotent groups of odd order~\cite{LP25}. In addition, the $D_4$ template
+of~\cite{Zhu25} is solved, by~\cite{BHZ26} (see Section~\ref{sec:discussion}).
+
+\paragraph{Results.} Let $\mathcal C$ be the class of finite groups $G$ with a
+chain $1=G_0\le G_1\le\dots\le G_m=G$ of \emph{normal subgroups of $G$} such
+that, for every $i$, the factor $G_i/G_{i-1}$ is abelian, its order is coprime to
+$|G:G_i|$, and the conjugation action of $G$ on it has abelian image.
+
+\begin{mainthm}\label{thm:A}
+If $G\in\mathcal C$, then cohomological $k$-consistency solves
+$\Csp(G^{[r]})$ for every $r\ge1$ and every $k\ge\max(3,r)$.
+\end{mainthm}
+
+The class $\mathcal C$ contains:
+\begin{itemize}
+\item all abelian groups;
+\item every group with an abelian normal Hall subgroup whose quotient is abelian,
+such as $S_3$, $A_4$, $D_{2n}$ for odd $n$, and the Frobenius groups
+$\Z_p\rtimes\Z_q$;
+\item all groups whose Sylow subgroups are all cyclic~\cite{Rob96}; in
+particular all groups of square-free order;
+\item groups with a non-abelian quotient, such as $\Z_7\rtimes S_3$ with $S_3$
+acting through its sign.
+\end{itemize}
+Every group in $\mathcal C$ has abelian Sylow subgroups (Remark~\ref{rem:sylow}).
+In particular $\mathcal C$ contains no non-abelian nilpotent group, so
+Theorem~\ref{thm:A} is complementary to the results above. Conversely, every group
+of order less than $24$ either lies in $\mathcal C$ or is a non-abelian
+$2$-group (Corollary~\ref{cor:small}).
+
+The proof (Section~\ref{sec:A}) works with one abelian normal Hall subgroup $N$ at
+a time. Coprimality makes the translations of the $N$-parts of cosets depend on
+each coordinate separately (Lemma~\ref{lem:shape}). The abelian action then
+splits the $N$-part of an instance into independent components. Each component
+depends on the $G/N$-part only through a single ``datum'', which can be read off
+any one of its variables. Fixing a local solution, as cohomological
+$k$-consistency does, therefore tests every datum that occurs, and removes those
+for which the component is unsolvable. Reducing the integer solutions modulo the
+exponent of $N$ makes this precise. The Lean formalization does not cover this
+proof.
+
+\begin{mainthm}\label{thm:B}
+Let $G$ be a finite group that is not nilpotent. Then none of the following
+solves $\Csp(G^{[3]})$: $\Z$-affine $k$-consistency at any nondecreasing level
+$k\in o(n)$, BLP+AIP, and CLAP. Moreover, $S_3^{[3]}$ pp-constructs the
+7-element template $\ORT[\Z_2^{[3]},\Z_3^{[3]}]$ of~\cite{LP25}.
+\end{mainthm}
+
+So these three algorithms can solve all coset-CSPs over $G$ only if $G$ is
+nilpotent. By~\cite{LP25} they do solve them when $G$ is $2$-nilpotent of odd
+order (Corollary~\ref{cor:nilp}). The proof (Section~\ref{sec:B}) uses a section
+$E\rtimes\Z_q$ of $G$ given by Schmidt's theorem. It builds a pp-power with a
+$\Z_q$-valued ``selector'' that switches between a Tseitin system over $\Z_q$ and
+one over $E$, and then applies the lower bounds of~\cite{LP25} for such
+or-constructions. For general $G$ this needs the observation that the proofs
+in~\cite{LP25} work for any two distinct primes. For $S_3$ it follows from their
+stated theorems.
+
+Theorems~\ref{thm:A} and~\ref{thm:B} together show that, for every non-abelian
+group $G\in\mathcal C$, the ternary coset-CSP over $G$ separates cohomological
+$k$-consistency, already at level $3$, from $\Z$-affine $k$-consistency, BLP+AIP and
+CLAP (Corollary~\ref{cor:sep}). Abelian coset-CSPs are solved by all of these
+algorithms, so $S_3$ is the smallest group that does this. Theorem~\ref{thm:B}
+also gives a short proof of a ternary analogue of the $S_{18}$ result
+of~\cite{LP25}.
+
+\begin{mainthm}\label{thm:C}
+Let $\Gamma'$ be pp-constructible from $\Gamma$. There are constants $a,b,c\ge1$
+such that, for $\mathsf A\in\{\Coh,\Aff\}$ and every nondecreasing
+$k\colon\mathbb N\to\mathbb N$: if $\mathsf A$ solves $\Csp(\Gamma)$ at level
+$k$, then $\mathsf A$ solves $\Csp(\Gamma')$ at level $n\mapsto a\,k(cn)+b$. In
+particular constant levels go to constant levels and $o(n)$ levels to $o(n)$
+levels.
+\end{mainthm}
+
+For constant levels, the case $\mathsf A=\Coh$ is also a consequence of the
+minion description in~\cite{BHZ26}. For sublinear levels we did not find it
+stated. Theorem~\ref{thm:C} is what turns the 7-element lower bound
+of~\cite{LP25} into Theorem~\ref{thm:B}. It also yields a consequence of
+Theorem~\ref{thm:A}: $\Coh$ solves every template that is pp-constructible from
+$G^{[r]}$ with $G\in\mathcal C$. This includes $\ORT[\Z_2^{[3]},\Z_3^{[3]}]$
+itself, which gives a second proof of the positive half
+of~\cite[Thm.~1.3]{LP25}, at some constant level.
+
+\paragraph{Verification.} Section~\ref{sec:verify} summarizes what has been
+checked by machine:
+\begin{itemize}
+\item Theorem~\ref{thm:C} for both algorithms, the characterizations of the two
+algorithms by stable families, and Lemma~\ref{lem:basic} are proved in Lean~4
+with Mathlib, using only the standard axioms;
+\item the pp-constructions of Theorem~\ref{thm:B} are verified by scripts:
+exhaustively for $S_3$, and for six groups $E\rtimes\Z_q$ in general;
+\item the structural lemmas of Section~\ref{sec:A}
+(Lemmas~\ref{lem:shape}, \ref{lem:split}, \ref{lem:decomp}
+and~\ref{lem:dichotomy}) were tested on random instances over $13$ groups in
+$\mathcal C$, with no failure. Lemma~\ref{lem:shape} fails on random cosets over
+the two non-coprime groups $D_4$ and $\Z_9\rtimes\Z_3$.
+\end{itemize}
+
+\section{Preliminaries}\label{sec:prelim}
+
+\paragraph{Structures and instances.} Signatures are finite and relational.
+We use the same letter for a structure and its universe, and write $\mathbf
+B\to\mathbf A$ if there is a homomorphism. For an instance $\mathbf B$,
+$\size{\mathbf B}=|B|+\sum_R \mathrm{ar}(R)\,|R^{\mathbf B}|$. A partial
+homomorphism with domain $X\subseteq B$ is a homomorphism $\mathbf B[X]\to\mathbf
+A$; $\sub Bk$ is the set of subsets of size at most $k$.
+
+\paragraph{The system $\mathsf L(\mathbf B,H)$.} A \emph{$k$-family} assigns to
+each $X\in\sub Bk$ a set $H(X)$ of partial homomorphisms with domain $X$. The
+system $\mathsf L(\mathbf B,H)$ has an integer variable $z_{X,f}$ for every
+$f\in H(X)$ and the equations
+\begin{align}
+\textstyle\sum_{f\in H(X)} z_{X,f}&=1, \tag{N}\\
+\textstyle\sum_{f\in H(X),\,f|_Y=g} z_{X,f}&=z_{Y,g}\quad(Y\subsetneq X,\ g\in H(Y)).\tag{C}
+\end{align}
+The \emph{$(X,f)$-pinned} system adds $z_{X,f}=1$ and $z_{X,f'}=0$ for every
+$f'\ne f$ in $H(X)$.
+
+\paragraph{The two algorithms.} \emph{$\Z$-affine $k$-consistency} $\Aff_k$
+\cite{DO24,LP25} computes the $k$-consistency family $\kappa$ (the largest
+$k$-family that is down-closed and has the forth property) and accepts if
+$\mathsf L(\mathbf B,\kappa)$ has an integer solution. \emph{Cohomological
+$k$-consistency} $\Coh_k$ \cite{OC22,LP25} starts from all partial
+homomorphisms and alternates $k$-consistency with the removal of every $f\in
+H(X)$ whose $(X,f)$-pinned system has no integer solution. It accepts if no
+$H(X)$ becomes empty.
+
+\begin{definition}
+A $k$-family $S$ of partial homomorphisms is \emph{consistent} if it satisfies
+(S1)~down-closure and (S2)~the forth property. It is \emph{$\Coh$-stable} if it
+is consistent and
+(S3)~for every $X$ and $f\in S(X)$ the $(X,f)$-pinned system $\mathsf
+L(\mathbf B,S)$ has an integer solution. It is \emph{$\Aff$-stable} if it is
+consistent and $\mathsf L(\mathbf B,S)$ has an integer solution. $S$ is
+\emph{nonempty} if $S(\emptyset)\ne\emptyset$, and then all $S(X)$ are nonempty.
+\end{definition}
+
+\begin{lemma}\label{lem:stable}
+$\mathsf A_k$ accepts $\mathbf B$ if and only if there is a nonempty
+$\mathsf A$-stable $k$-family, for $\mathsf A\in\{\Coh,\Aff\}$. For $\Coh$
+this holds for every order of removals.
+\end{lemma}
+\begin{proof}
+For $\Coh$: the final family of an accepting run is stable. Conversely, a stable
+family $S$ is never touched: its members pass the $k$-consistency checks, and a
+pinned solution for $S$, extended by $0$, is a pinned solution for any $H\supseteq
+S$. Equation (C) is checked using (S1): if $g\notin S(Y)$ then no member of $S$
+restricts to $g$. For $\Aff$: $\kappa$ itself is $\Aff$-stable if $\mathsf
+L(\mathbf B,\kappa)$ is solvable, and (N) for $X=\emptyset$ forces
+$\kappa(\emptyset)\neq\emptyset$. Conversely every consistent $S$ is contained in
+$\kappa$, and a solution for $S$ extends by $0$.
+\end{proof}
+
+\begin{lemma}\label{lem:basic}
+(i) If $\mathbf B\to\mathbf A$ then $\Coh_k$ and $\Aff_k$ accept $\mathbf B$
+for every $k$. (ii) Acceptance at level $k$ implies acceptance at every level
+$k'\le k$. (iii) If $\Coh_k$ accepts $\mathbf B$ then so does $\Aff_k$.
+\end{lemma}
+\begin{proof}
+(i) Use $S(X)=\{h|_X\}$ and $z\equiv1$. (ii) Restrict the family and the
+solutions to sets of size at most $k'$. (iii) A $\Coh$-stable family is
+$\Aff$-stable: pin at the empty map.
+\end{proof}
+
+We say that $\mathsf A$ \emph{solves $\Csp(\mathbf A)$ at level} $k\colon\mathbb
+N\to\mathbb N$ if, for every instance $\mathbf B$, $\mathsf A_{k(\size{\mathbf
+B})}$ accepts $\mathbf B$ only if $\mathbf B\to\mathbf A$ (the converse is
+Lemma~\ref{lem:basic}(i)).
+
+\paragraph{pp-constructions~\cite{BOP18}.} An $\ell$-th pp-power of $\Gamma$ is
+a structure on $\Gamma^\ell$ whose relations are defined by primitive positive
+formulas over $\Gamma$ (with equality), reading each element of $\Gamma^\ell$
+as an $\ell$-tuple. A structure is pp-constructible from $\Gamma$ if it is
+reached from $\Gamma$ by a finite sequence of steps, each taking a pp-power or a
+homomorphically equivalent structure. For finite structures, $\Gamma'$ is
+pp-constructible from $\Gamma$ iff there is a minion homomorphism
+$\Pol(\Gamma)\to\Pol(\Gamma')$~\cite{BOP18}. Hence any algorithm whose power on
+$\Csp(\Gamma)$ is characterized by the existence of polymorphisms satisfying
+given minor conditions (height-1 identities), such as BLP+AIP~\cite{BGWZ20} and
+CLAP~\cite{CZ23,Zhu25}, solves $\Csp(\Gamma')$ whenever it solves
+$\Csp(\Gamma)$.
+
+\paragraph{Notation.} $D_{2n}$ is the dihedral group of order $2n$, except that,
+following~\cite{Zhu25,BHZ26}, $D_4$ denotes the dihedral group of order $8$.
+
+\paragraph{Coset templates.} For a finite group $G$ and $r\ge1$, $G^{[r]}$ is
+the structure on $G$ with one $r$-ary relation for each coset of a subgroup of
+$G^r$. Left and right cosets give the same relations, since
+$g\Delta=(g\Delta g^{-1})g$. Constraints of smaller arity are expressed with
+repeated variables, e.g.\ $x\in P$ as $(x,\dots,x)\in P\times G^{r-1}$.
+
+If $H\le G$ and $K\unlhd H$, then $G^{[r]}$ pp-constructs $(H/K)^{[r]}$. Pull
+each coset of $(H/K)^r$ back along $H\to H/K$, obtaining cosets of $H^r$, hence
+of $G^r$. The resulting structure on $G$ maps to $(H/K)^{[r]}$ by the projection
+on $H$, extended arbitrarily on $G\setminus H$; this is a homomorphism because
+all pulled-back relations lie in $H^r$. In the other direction, any section of
+$H\to H/K$ is a homomorphism. So the two structures are homomorphically
+equivalent.
+
+\section{Transfer along pp-constructions}\label{sec:transfer}
+
+This section proves Theorem~\ref{thm:C}. The argument is routine; it is the one
+known for $k$-consistency, with the integer solutions carried along.
+
+\begin{lemma}[transfer]\label{lem:transfer}
+Let $S$ be a nonempty $\mathsf A$-stable $k$-family for $(\mathbf B,\mathbf A)$.
+Let $\mathbf B',\mathbf A'$ be another instance and template, and let $k'$ be a
+level. Suppose we have:
+\begin{itemize}
+\item a monotone map $\eta$ from subsets of $B'$ to subsets of $B$ with
+$|\eta(X)|\le k$ whenever $|X|\le k'$;
+\item for each $X$, a map $\iota_X$ from partial maps with domain $\eta(X)$ to
+partial maps with domain $X$, natural in the sense that
+$\iota_X(f)|_Y=\iota_Y(f|_{\eta(Y)})$ for $Y\subseteq X$, and sending
+$S(\eta X)$ to partial homomorphisms $\mathbf B'[X]\to\mathbf A'$.
+\end{itemize}
+Then $S'(X)=\iota_X(S(\eta X))$ is a nonempty $\mathsf A$-stable
+$k'$-family for $(\mathbf B',\mathbf A')$.
+\end{lemma}
+\begin{proof}
+(S1), (S2) follow from naturality, monotonicity and (S1), (S2) for $S$. Push a
+solution $z$ forward by summing over fibres:
+$z'_{X,g}=\sum\{z_{\eta X,f} : f\in S(\eta X),\ \iota_X f=g\}$. Equation (N)
+is (N) for $\eta X$. For (C), regroup the sum over $S(\eta X)$ according to the
+restriction to $\eta Y$, using (S1) and (C) for $\eta Y\subseteq\eta X$. A
+solution pinned at $f$ is pushed to a solution pinned at $\iota_X f$.
+\end{proof}
+
+Lemma~\ref{lem:transfer} gives:
+\begin{itemize}
+\item monotonicity in $k$, with $\eta=\mathrm{id}$;
+\item template homomorphisms $h\colon\mathbf A\to\mathbf A'$, with
+$\iota_X(f)=h\circ f$;
+\item gadget reductions for pp-powers. Here $\eta(X)$ is the set of original
+variables underlying $X$ and the scopes of the constraints whose witnesses occur
+in $X$, and $\iota_X$ evaluates chosen witnesses. Taking level $r(k+1)$ in
+$\mathbf B$, for $r$ the maximal arity, makes every $\iota_X(f)$ a partial
+homomorphism.
+\item quotients by equality, with $\eta(X)$ a set of class representatives.
+At level $k+\rho+1$, where $\rho$ is the maximal arity, members of $S$ are
+constant on classes.
+\end{itemize}
+Since the gadget instances have size linear in the original one, these steps
+compose to Theorem~\ref{thm:C} with the stated constants. The details are those
+of our earlier note and are formalized in Lean (Section~\ref{sec:verify}). The
+formal proof covers $\Coh$ and $\Aff$ uniformly, as a Boolean parameter of the
+notion of stability.
+
+\section{Proof of Theorem~\ref{thm:A}}\label{sec:A}
+
+Theorem~\ref{thm:A} follows by induction on the length of the chain from the
+following step, applied with $N=G_1$. The quotient $G/G_1$ inherits a chain of
+the same kind: its factors are $G_i/G_{i-1}$ with the same indices, and since
+$G_1\le G_{i-1}$ acts trivially on $G_i/G_{i-1}$, the group $G/G_1$ acts on it
+with the same abelian image. The base case is the trivial group.
+
+\begin{theorem}\label{thm:step}
+Let $N\unlhd G$ be abelian with $\gcd(|N|,|G:N|)=1$, and suppose the conjugation
+action of $G$ on $N$ has abelian image. Let $r\ge1$ and $k\ge\max(3,r)$. If
+$\Coh_k$ solves $\Csp((G/N)^{[r]})$, then $\Coh_k$ solves $\Csp(G^{[r]})$.
+\end{theorem}
+
+\paragraph{Setting.} Put $Q=G/N$, with projection $\pi$. By the
+Schur--Zassenhaus theorem $N$ has a complement, so we identify $G=N\rtimes Q$,
+with elements $(n,q)$ and $(n,q)(n',q')=(n+q\cdot n',qq')$. The action of $Q$
+on $N$ factors through an abelian group $A\le\mathrm{Aut}(N)$, a quotient of $Q$.
+On $G^r=N^r\rtimes Q^r$ we use the coordinatewise action
+$\sigma\cdot n=(\sigma_1\cdot n_1,\dots,\sigma_r\cdot n_r)$. For $R\subseteq G^r$
+and $\tau\in Q^r$ the \emph{fibre} is $R_\tau=\{n\in N^r:(n,\tau)\in R\}$, where
+$(n,\tau)$ denotes $((n_1,\tau_1),\dots,(n_r,\tau_r))$.
+
+\begin{lemma}[shape of cosets]\label{lem:shape}
+Let $R=\Delta\delta$ with $\Delta\le G^r$. Put $\Sigma=\pi(\Delta)$ and
+$U=\{n:(n,1)\in\Delta\}$. Then $U$ is $\Sigma$-invariant, and there are
+$q^\circ\in Q^r$ and $m,d\in N^r$ such that $\pi(R)=\Sigma q^\circ$ and, for
+every $\tau\in\pi(R)$,
+\[
+R_\tau = U + m + (\tau q^{\circ-1})\cdot d ,
+\]
+i.e., the $i$-th translation is $m_i+(\tau_iq^{\circ-1}_i)\cdot d_i$. So each
+fibre is a coset of $U$, and its $i$-th translation depends on $\tau_i$ only.
+\end{lemma}
+\begin{proof}
+For $\sigma\in\Sigma$ choose $(a_\sigma,\sigma)\in\Delta$. The elements of
+$\Delta$ over $\sigma$ are $(u,1)(a_\sigma,\sigma)=(u+a_\sigma,\sigma)$, $u\in
+U$. Conjugation by $(a_\sigma,\sigma)$ maps $(u,1)$ to $(\sigma\cdot u,1)$, so
+$U$ is $\Sigma$-invariant. From
+$(a_\sigma,\sigma)(a_{\sigma'},\sigma')=(a_\sigma+\sigma\cdot
+a_{\sigma'},\sigma\sigma')\in\Delta$, the map $\sigma\mapsto a_\sigma+U$ is a
+$1$-cocycle $\Sigma\to N^r/U$. Since $|\Sigma|$ divides $|Q|^r$, which is coprime
+to $|N^r/U|$, we have $H^1(\Sigma,N^r/U)=0$; averaging over $\Sigma$ gives an
+explicit coboundary~\cite{Rob96}. So there is $m'\in N^r$ with
+$a_\sigma\equiv\sigma\cdot m'-m'$ modulo $U$. Writing $\delta=(d',q^\circ)$,
+\[
+(u+\sigma\cdot m'-m',\sigma)(d',q^\circ)=(u-m'+\sigma\cdot(m'+d'),\sigma q^\circ).
+\]
+Put $m=-m'$, $d=m'+d'$ and $\tau=\sigma q^\circ$.
+\end{proof}
+
+Let $\mathbf B$ be an instance of $\Csp(G^{[r]})$ with variable set $V$. Its
+constraints $C$ have scopes $\bar v_C=(v_{C,1},\dots,v_{C,r})\in V^r$, possibly
+with repetitions, and relations $R_C$. We fix data
+$(\Sigma_C,U_C,q^\circ_C,m_C,d_C)$ as in Lemma~\ref{lem:shape}. The projected
+instance $\pi(\mathbf B)$ has relations $\pi(R_C)$. For
+$\tau\in\Sol(\pi\mathbf B)$, the \emph{$N$-system} $\mathbf B_\tau$ has
+variables $n_v\in N$ and constraints $n|_{\bar v_C}\in(R_C)_{\tau|_C}$. Clearly
+$\mathbf B$ has a solution with $Q$-part $\tau$ iff $\mathbf B_\tau$ is
+solvable.
+
+\paragraph{Base change.} Fix a prime $p$ dividing $|N|$. Let $N_p$ be the Sylow
+$p$-subgroup, $p^a$ its exponent, $\epsilon$ the exponent of $A$ (coprime to
+$p$, as $A$ is a quotient of $Q$), and $f$ the order of $p$ modulo $\epsilon$. Let
+$\Lambda=\mathrm{GR}(p^a,f)$ be the Galois ring of characteristic $p^a$ and rank
+$f$~\cite{Wan03}. It is a local ring, free over $\Z/p^a$ with a basis containing
+$1$. Its unit group contains the Teichmüller group $\mu$, cyclic of order
+$p^f-1$, which reduces isomorphically onto $\mathbb F_{p^f}^\times$. Hence:
+\begin{enumerate}
+\item[(i)] $\epsilon$ divides $|\mu|$, and every homomorphism from a group of
+exponent dividing $\epsilon$ to $\Lambda^\times$ takes values in $\mu$;
+\item[(ii)] the difference of two distinct elements of $\mu$ is a unit.
+\end{enumerate}
+Put $M=N_p\otimes\Lambda$, a $\Lambda$-module on which $Q$ acts
+$\Lambda$-linearly through $A$. Let $\Chars$ be the set of homomorphisms
+$\chi\colon Q\to\mu$ that factor through $A$. As $|A|$ is invertible in $\Lambda$
+and $A$ is abelian of exponent dividing $|\mu|$, the elements
+$e_\chi=|A|^{-1}\sum_{a\in A}\chi(a)^{-1}a$ are orthogonal idempotents of
+$\Lambda[A]$ with sum $1$. So $M=\bigoplus_{\chi\in\Chars}M_\chi$, where
+$M_\chi=e_\chi M=\{x:q\cdot x=\chi(q)x\}$. For $U\le N^r$ let $U^\Lambda$ be the
+image of $U_p\otimes\Lambda$ in $M^r$, injective since $\Lambda$ is free; it is a
+$\Lambda$-submodule. Write $M_\chi^{(i)}$ for the copy of $M_\chi$ in coordinate
+$i$ of $M^r$.
+
+\begin{lemma}\label{lem:split}
+(a) For $\tau\in\Sol(\pi\mathbf B)$, $\mathbf B_\tau$ is solvable iff, for every
+$p$, the system with variables in $M$ and constraints $n|_{\bar v_C}\in
+U_C^\Lambda+\big(m_C+(\tau|_C\,q_C^{\circ-1})\cdot d_C\big)_p$ is solvable.
+
+(b) For a constraint $C$ and $\psi\in\Hom(\Sigma_C,\mu)$, let
+$J_C(\psi)=\{(i,\chi): M_\chi\ne0,\ \chi(\sigma_i)=\psi(\sigma)\ \forall\sigma\in\Sigma_C\}$.
+These sets partition $\{(i,\chi):M_\chi\ne0\}$, and $U_C^\Lambda=\bigoplus_\psi
+U_C^\psi$, where $U_C^\psi=U_C^\Lambda\cap\bigoplus_{(i,\chi)\in
+J_C(\psi)}M^{(i)}_\chi$.
+\end{lemma}
+\begin{proof}
+(a) Everything decomposes into $p$-parts. A solution over $N_p$ is one over $M$.
+Conversely, a $\Z/p^a$-linear retraction $\Lambda\to\Z/p^a$ fixing $1$ induces a
+retraction $M\to N_p$ that maps $U_C^\Lambda$ into $U_{C,p}$ and fixes the
+translations, which lie in $N_p^r$. Apply it to a solution over $M$.
+
+(b) Each $(i,\chi)$ lies in $J_C(\psi)$ for exactly one $\psi$, namely
+$\psi(\sigma)=\chi(\sigma_i)$. The group $\Sigma_C$ (which may be non-abelian
+when $Q$ is) acts on $M^r$ through its image $\Sigma'$ in $A^r$, which is
+abelian, of exponent dividing $\epsilon$, and of order prime to $p$. Only
+characters through $\Sigma'$ occur. The elements
+$e_\psi=|\Sigma'|^{-1}\sum_{s\in\Sigma'}\psi(s)^{-1}s\in\Lambda[\Sigma']$ are
+orthogonal idempotents summing to $1$; orthogonality uses that distinct
+characters into $\mu$ differ by a unit, by (ii). Since $\Sigma'$ acts on
+$M^{(i)}_\chi$ by the scalars $\chi(\sigma_i)$, the image $e_\psi M^r$ is
+$\bigoplus_{J_C(\psi)}M_\chi^{(i)}$. By Lemma~\ref{lem:shape}, $U_C^\Lambda$ is a
+$\Sigma_C$-invariant $\Lambda$-submodule, so $e_\psi U_C^\Lambda\subseteq
+U_C^\Lambda$ and $U_C^\Lambda=\bigoplus_\psi e_\psi U_C^\Lambda$, with $e_\psi
+U_C^\Lambda=U_C^\psi$.
+\end{proof}
+
+The $(i,\chi)$-component of the translation in (a) is
+\begin{equation}\label{eq:transl}
+e_\chi m_{C,i}+\chi(\tau_{v_{C,i}})\,\chi(q^\circ_{C,i})^{-1}\,e_\chi d_{C,i},
+\end{equation}
+since $q$ acts on $M_\chi$ by $\chi(q)$.
+
+\paragraph{Components and data.} Let $\mathcal I_p$ be the bipartite graph with
+two kinds of vertices:
+\begin{itemize}
+\item \emph{points} $(v,\chi)\in V\times\Chars$ with $M_\chi\ne0$;
+\item \emph{blocks} $(C,\psi)$ with $J_C(\psi)\neq\emptyset$.
+\end{itemize}
+A point $(v,\chi)$ is adjacent to a block $(C,\psi)$ if $v=v_{C,i}$ for some
+$(i,\chi)\in J_C(\psi)$. Let $K$ range over its connected components, and let
+$V_K$ be the set of variables of points in $K$. For a partial map $g$ into $Q$
+defined at $v$ and a point $w=(v,\chi)$, put $c_w(g)=\chi(g(v))\in\mu$.
+
+An assignment $\gamma\in\mu^{K}$ to the points of $K$ is \emph{coherent} if, for
+every block $(C,\psi)$ of $K$ and all $(i,\chi),(j,\chi')\in J_C(\psi)$,
+\[
+\gamma_{(v_{C,i},\chi)}\,\chi(q^\circ_{C,i})^{-1}=\gamma_{(v_{C,j},\chi')}\,\chi'(q^\circ_{C,j})^{-1}.
+\]
+If $g$ satisfies the $Q$-part of $C$, then $c(g)$ satisfies this condition,
+because both sides equal $\psi(g|_{\bar v_C}q_C^{\circ-1})$. In particular
+$c(\tau)|_K$ is coherent for $\tau\in\Sol(\pi\mathbf B)$. As $K$ is connected,
+the set $\Cohset_K$ of coherent assignments is empty or a single orbit
+$\{\lambda\gamma:\lambda\in\mu\}$.
+
+For $\gamma\in\Cohset_K$, the \emph{component system} $\cL_K(\gamma)$ has a
+variable $x_v\in\bigoplus_{\chi:(v,\chi)\in K}M_\chi$ for each $v\in V_K$. For
+each block $\beta=(C,\psi)$ of $K$ it has the constraint
+\[
+(x_{v_{C,i},\chi})_{(i,\chi)\in J_C(\psi)}\in U_C^\psi+t_\beta(\gamma),\qquad
+t_\beta(\gamma)_{(i,\chi)}=e_\chi m_{C,i}+\gamma_{(v_{C,i},\chi)}\chi(q^\circ_{C,i})^{-1}e_\chi d_{C,i},
+\]
+where $x_{v,\chi}$ is the $\chi$-component of $x_v$. Put
+$A_K=\{\gamma\in\Cohset_K:\cL_K(\gamma)\text{ is solvable}\}$.
+
+\begin{lemma}\label{lem:decomp}
+For $\tau\in\Sol(\pi\mathbf B)$: $\mathbf B_\tau$ is solvable iff
+$c(\tau)|_K\in A_K$ for every prime $p$ and every component $K$ of
+$\mathcal I_p$.
+\end{lemma}
+\begin{proof}
+Write $x_v=\sum_\chi x_{v,\chi}$. By Lemma~\ref{lem:split}(b)
+and~\eqref{eq:transl}, each constraint of the system in
+Lemma~\ref{lem:split}(a) is the conjunction, over $\psi$, of the constraints of
+the blocks $(C,\psi)$ at $\gamma=c(\tau)$. Every block lies in exactly one
+component, and points in no block are unconstrained.
+\end{proof}
+
+\begin{lemma}\label{lem:dichotomy}
+Each $A_K$ is empty, a single assignment, or all of $\Cohset_K$.
+\end{lemma}
+\begin{proof}
+Fix $\gamma^0\in\Cohset_K$. The system $\cL_K(\lambda\gamma^0)$ has the form
+$Dx=t_0+\lambda t_1$ with $\lambda\in\mu$. Here $D$ is $\Lambda$-linear (it maps
+$x$ to the classes of its block restrictions modulo the $U_C^\psi$), and $t_0,t_1$
+do not depend on $\lambda$. If it is solvable for $\lambda\ne\lambda'$, then
+$(\lambda-\lambda')t_1\in\operatorname{im}D$. By (ii), $\lambda-\lambda'$ is a
+unit, so $t_1\in\operatorname{im}D$, hence $t_0\in\operatorname{im}D$, and the
+system is solvable for every $\lambda$.
+\end{proof}
+
+\begin{lemma}[coherence]\label{lem:coherence}
+Let $k\ge\max(3,r)$ and let $S$ be a nonempty consistent $k$-family for
+$(\mathbf B,G^{[r]})$. Then, for each $p$ and $K$, $\Cohset_K\ne\emptyset$.
+Moreover, for every $g\in S(X)$ with $X\cap V_K\ne\emptyset$ there is a unique
+$\gamma_K(g)\in\Cohset_K$ that agrees with $c(\pi\circ g)$ on the points of $K$
+over $X$, and $\gamma_K(g|_Y)=\gamma_K(g)$ whenever $Y\subseteq X$ meets $V_K$.
+\end{lemma}
+\begin{proof}
+A walk $P$ in $\mathcal I_p$ from a point $w$ to a point $w'$ passes through
+blocks; at each block it enters through some coordinate $(i,\chi)$ and leaves
+through some $(j,\chi')$, a choice that matters only when a variable is repeated
+in a scope. Let $\rho_P\in\mu$ be the product of the ratios
+$\chi'(q^\circ_{C,j})\chi(q^\circ_{C,i})^{-1}$ along $P$, for any such choice,
+so that every coherent $\gamma$ has $\gamma_{w'}=\rho_P\gamma_w$.
+
+We claim that $c_{w'}(\pi h)=\rho_Pc_w(\pi h)$ for every $h\in S(\{v,v'\})$,
+where $v,v'$ are the variables of $w,w'$. We induct on the number of blocks of
+$P$.
+\begin{itemize}
+\item \emph{One block $(C,\psi)$.} The variables $v,v'$ occur in $\bar v_C$. By
+(S2), $h$ extends to a member of $S$ on the set of variables of $\bar v_C$, a set
+of size at most $r\le k$. That extension satisfies $C$, so the observation before
+the definition of $\cL_K$ applies.
+\item \emph{More blocks.} Let $v_1$ be the variable of the next point. By (S2),
+$h$ extends to $\{v,v_1,v'\}$ (size $\le3\le k$). By (S1) its restrictions to
+$\{v,v_1\}$ and $\{v_1,v'\}$ lie in $S$. Apply the induction hypothesis.
+\end{itemize}
+
+As $S$ is nonempty, $S(\{v,v'\})\ne\emptyset$ by (S2), so $\rho_P$ depends only
+on $w,w'$. Fix a point $w_0$ of $K$ and set $\gamma_w=\rho_{P(w_0\to w)}$ for any
+walk; this is coherent. For $g\in S(X)$, the claim applied to restrictions of
+$g$, which lie in $S$ by (S1), shows that $c(\pi g)$ on the points of $K$ over
+$X$ is a scalar multiple of $\gamma$. Uniqueness and compatibility with
+restriction are clear.
+\end{proof}
+
+\begin{lemma}[pinning finds bad data]\label{lem:pinning}
+Let $k\ge\max(3,r)$ and let $S$ be a nonempty $\Coh$-stable $k$-family for
+$(\mathbf B,G^{[r]})$. Then $\gamma_K(g)\in A_K$ for every $g\in S(X)$ and every
+$K$ with $X\cap V_K\neq\emptyset$.
+\end{lemma}
+\begin{proof}
+Let $\gamma=\gamma_K(g)$ and let $z$ solve the $(X,g)$-pinned system $\mathsf
+L(\mathbf B,S)$. For $Y\in\sub Vk$ meeting $V_K$ put
+$\mass(Y)=\sum\{z_{Y,h}:h\in S(Y),\ \gamma_K(h)=\gamma\}$. If $Y'\subseteq Y$ both
+meet $V_K$, then $\mass(Y')=\mass(Y)$ by (C) and Lemma~\ref{lem:coherence}. Any
+two such sets are linked through singletons and pairs, so $\mass$ is constant.
+By the pinning, $z_{X,g}=1$ and $z_{X,g'}=0$ for every other $g'\in S(X)$, so
+$\mass(X)=1$.
+
+For $h\in S(Y)$, let $x_K(h)$ be the $K$-part of its $N$-coordinates: at $v\in
+Y\cap V_K$ it is $(e_\chi(h(v)_{N,p}\otimes1))_{\chi:(v,\chi)\in K}$, where
+$h(v)_{N,p}$ is the $p$-part of the $N$-coordinate of $h(v)$. For a nonempty
+$Y\subseteq V_K$ with $|Y|\le k$ and an assignment $x$ to $Y$, put
+\[
+W(Y,x)=\textstyle\sum\{z_{Y,h}:h\in S(Y),\ \gamma_K(h)=\gamma,\ x_K(h)=x\}\bmod p^a
+\ \in\Z/p^a\subseteq\Lambda .
+\]
+Then $\sum_xW(Y,x)=\mass(Y)=1$. For nonempty $Y'\subseteq Y$ we also have
+$\sum_{x\supseteq x'}W(Y,x)=W(Y',x')$, by (C) and the compatibility of $\gamma_K$
+with restriction.
+
+Let $\beta=(C,\psi)$ be a block of $K$ and $Y_\beta$ the set of variables of its
+points, so $Y_\beta\subseteq\bar v_C$ and $|Y_\beta|\le r\le k$. If
+$W(Y_\beta,x)\ne0$, then $x$ satisfies the constraint of $\beta$ in
+$\cL_K(\gamma)$. Indeed, take $h\in S(Y_\beta)$ with $\gamma_K(h)=\gamma$ and
+$x_K(h)=x$, and extend it by (S2) to $h^+\in S$ on the variables of $\bar v_C$, a
+set of size at most $r\le k$. Then $h^+$ satisfies $C$, so by
+Lemma~\ref{lem:shape} its $N$-part on $\bar v_C$ lies in
+$U_C+m_C+(\pi h^+|_C\,q^{\circ-1}_C)\cdot d_C$. Take $p$-parts, tensor with
+$\Lambda$ and project with $e_\psi$. By~\eqref{eq:transl} and
+$\gamma_K(h^+)=\gamma$ this gives $x|_\beta\in U_C^\psi+t_\beta(\gamma)$.
+
+Finally set $x^*_v=\sum_xW(\{v\},x)\,x$. For each block $\beta$, the element
+$\sum_xW(Y_\beta,x)\,x|_\beta$ is an affine combination of elements of the coset
+$U_C^\psi+t_\beta(\gamma)$, with coefficients in $\Lambda$ summing to $1$, so it
+lies in that coset. By the marginal identity its coordinates are those of $x^*$.
+Hence $x^*$ solves $\cL_K(\gamma)$.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:step}]
+Let $S$ be a nonempty $\Coh$-stable $k$-family for $\mathbf B$; we show
+$\mathbf B\to G^{[r]}$.
+
+\emph{Recording the good data.} Take $p$ and a component $K$. By
+Lemma~\ref{lem:pinning}, $A_K$ contains $\gamma_K(h)$ for $h\in S(\{v\})$,
+$v\in V_K$. So by Lemma~\ref{lem:dichotomy} either $A_K=\Cohset_K$ or
+$A_K=\{\gamma^K\}$. In the second case, add to $\mathbf B$, for each point
+$(v,\chi)\in K$, the constraint $(v,\dots,v)\in P_{v,\chi}\times G^{r-1}$,
+where $P_{v,\chi}=\{x\in G:\chi(\pi x)=\gamma^K_{(v,\chi)}\}$. This set is a coset
+of the normal subgroup $\ker(\chi\circ\pi)$, and it is nonempty because every
+$h\in S(\{v\})$ satisfies it (Lemma~\ref{lem:pinning}). Call the result
+$\mathbf B^+$. All members of $S$ satisfy the new constraints and
+$\mathsf L(\mathbf B^+,S)=\mathsf L(\mathbf B,S)$, so $S$ is $\Coh$-stable for
+$\mathbf B^+$.
+
+\emph{Solving the quotient.} Let $\Gamma_Q$ be the structure on $Q$ with the
+signature of $G^{[r]}$, each symbol $R$ read as $\pi(R)$, a coset in $Q^r$. Then
+$\pi\colon G^{[r]}\to\Gamma_Q$ is a homomorphism. By Lemma~\ref{lem:transfer}
+(with $\iota_X(f)=\pi\circ f$), $\pi\circ S$ is a nonempty $\Coh$-stable family
+for $(\mathbf B^+,\Gamma_Q)$. Rename each symbol $R$ to the symbol of $Q^{[r]}$
+for $\pi(R)$; this may merge symbols with the same image, which is harmless, and
+it changes neither partial homomorphisms nor systems. So $\Coh_k$ accepts the
+corresponding $Q^{[r]}$-instance, and by hypothesis it has a solution $\tau$.
+
+\emph{Lifting.} $\tau\in\Sol(\pi\mathbf B)$, so $c(\tau)|_K$ is coherent for
+every $K$. If $A_K=\Cohset_K$, then $c(\tau)|_K\in A_K$. Otherwise the unary
+constraints force $c(\tau)|_K=\gamma^K\in A_K$. By Lemma~\ref{lem:decomp},
+$\mathbf B_\tau$ is solvable, so $\mathbf B$ has a solution.
+\end{proof}
+
+\begin{remark}
+When $Q$ is abelian one can avoid the induction, though not the pinning: round
+the $Q$-part of an integer solution with the alternating operations of $Q$. The
+resulting $\tau$ has good data. Indeed, $c$ is multiplicative in $\tau$, and by
+Lemmas~\ref{lem:pinning} and~\ref{lem:dichotomy} each $A_K$ is a singleton
+containing all occurring data, or all of $\Cohset_K$.
+\end{remark}
+
+\begin{remark}\label{rem:sylow}
+Every $G\in\mathcal C$ has abelian Sylow subgroups. The factor orders of the
+chain are pairwise coprime, so for each prime $\ell$ there is a unique $i$ with
+$\ell$ dividing $|G_i/G_{i-1}|$. A Sylow $\ell$-subgroup lies in the normal
+subgroup $G_i$ (whose index is prime to $\ell$), meets $G_{i-1}$ trivially, and
+therefore embeds in the abelian group $G_i/G_{i-1}$. The converse fails: $A_5$
+and $\mathbb F_5^2\rtimes S_3$ (with faithful action) have abelian Sylow subgroups
+but are not in $\mathcal C$.
+\end{remark}
+
+\begin{corollary}\label{cor:small}
+Let $G$ be a finite group of order less than $24$ that is not a non-abelian
+$2$-group. Then $\Coh_k$ solves $\Csp(G^{[r]})$ for all $r$ and all $k\ge\max(3,r)$.
+\end{corollary}
+\begin{proof}
+A non-abelian $\ell$-group has order at least $\ell^3$, so below $24$ the only
+groups with a non-abelian Sylow subgroup are the non-abelian $2$-groups (orders
+$8$ and $16$). The remaining non-abelian groups of order below $24$ are:
+\begin{itemize}
+\item the dihedral groups $D_6,D_{10},D_{14},D_{18},D_{22}$;
+\item $A_4$, $\Z_3\rtimes\Z_4$ and $S_3\times\Z_2$ (order $12$);
+\item $S_3\times\Z_3$ and $(\Z_3\times\Z_3)\rtimes\Z_2$ (order $18$);
+\item $D_{20}$, $\Z_5\rtimes\Z_4$ (two actions) (order $20$);
+\item $\Z_7\rtimes\Z_3$ (order $21$).
+\end{itemize}
+Each of these has an abelian normal Hall subgroup with abelian quotient, namely
+the subgroup of odd order in the dihedral cases, $V_4$ in $A_4$, and the normal
+Sylow subgroup for the odd prime in the others. So each lies in $\mathcal C$.
+Abelian groups lie in $\mathcal C$ as well.
+\end{proof}
+
+\begin{example}
+For $G=S_3=\Z_3\rtimes\Z_2$ we have $N=\Z_3$, $p=3$, $\Lambda=\Z_3$,
+$\mu=\{\pm1\}$, and $\Chars=\{1,\mathrm{sign}\}$; only the sign character has
+$M_\chi\ne0$. A component is a set of variables whose $\Z_3$-parts are linked by
+constraints. Within it the relative signs are fixed, and the component system
+depends only on one global sign: in one sign it may be solvable and in the other
+not. Pinning one local solution fixes that sign and reduces the component to
+linear algebra over $\Z_3$.
+\end{example}
+
+\section{Proof of Theorem~\ref{thm:B}}\label{sec:B}
+
+\subsection{A section of every non-nilpotent group}
+
+\begin{lemma}\label{lem:schmidt}
+Every finite non-nilpotent group $G$ has a section $H\cong E\rtimes\langle y\rangle$
+with the following properties:
+\begin{itemize}
+\item $E$ is a nontrivial elementary abelian $p$-group;
+\item $y$ has prime order $q\ne p$;
+\item $y$ fixes no nonzero element of $E$.
+\end{itemize}
+Hence, writing $\rho(s)$ for the action of $y^s$, the map $\rho(s)-1$ is invertible
+on $E$ for every $s\not\equiv0\pmod q$.
+\end{lemma}
+\begin{proof}
+A non-nilpotent subgroup $K\le G$ of minimal order has all proper subgroups
+nilpotent. By Schmidt's theorem~\cite{Hup67,Rob96}, $K=P\rtimes\langle x\rangle$
+with $P$ a normal Sylow $p$-subgroup and $\langle x\rangle$ a cyclic $q$-group,
+$p\neq q$.
+
+\emph{The action of $x$ on $\bar P$.} As $K$ is not nilpotent, $x$ does not
+centralize $P$. By Burnside's theorem on coprime automorphisms of
+$p$-groups~\cite{Rob96}, $x$ then acts nontrivially on the elementary abelian group
+$\bar P=P/\Phi(P)$. Let $q^c$ ($c\ge1$) be the order of this action and put
+$y_0=x^{q^{c-1}}$; it acts on $\bar P$ with order $q$. Its power $y_0^q$ acts
+trivially on $\bar P$, hence (Burnside again) on $P$. So $y_0^q$ is central in
+$P\langle y_0\rangle$, and
+$L=P\langle y_0\rangle/\Phi(P)\langle y_0^q\rangle\cong\bar P\rtimes\Z_q$.
+
+\emph{Splitting off the fixed points.} By Maschke's theorem,
+$\bar P=C\oplus D$ with $C$ the fixed points of $y_0$ and $D=[\bar P,y_0]\ne0$,
+both invariant. Then $C\unlhd L$, and $L/C\cong D\rtimes\Z_q$ is the required
+section with $E=D$. If $s\not\equiv0$, then $y^s$ generates $\langle y\rangle$, so
+a fixed vector of $\rho(s)$ is fixed by $y$, hence $0$.
+\end{proof}
+
+By Section~\ref{sec:prelim}, $G^{[3]}$ pp-constructs $H^{[3]}$. From now on fix
+$H=E\rtimes\Z_q$ as in Lemma~\ref{lem:schmidt}, with elements $(e,s)$ and
+projection $\pi(e,s)=s$. Put
+\[
+N_s=(\rho(s)-1)(\rho(1)-1)^{-1}\in\mathrm{End}(E),
+\]
+so that $N_0=0$, $N_1=1$, and $N_s$ is invertible for $s\ne0$.
+
+\subsection{The or-template and the pp-power}
+
+Write $\Gamma_1=\Z_q$ and $\Gamma_2=E$. For $i=1,2$ let $\mathbf A_i$ be the
+structure on $\Gamma_i$ with the \emph{Tseitin relations}
+$R^i_{\varepsilon,\lambda}=\{x\in\Gamma_i^3:\varepsilon_1x_1+\varepsilon_2x_2+\varepsilon_3x_3=\lambda\}$,
+for $\varepsilon\in\{\pm1\}^3$ and $\lambda\in\Gamma_i$. Let $\mathbf
+A=\ORT[\mathbf A_1,\mathbf A_2]$ be Lichter and Pago's or-template~\cite[\S3.1]{LP25}.
+Its universe is $\Gamma_1\sqcup\Gamma_2\sqcup\{c_1,c_2\}$, and its relations are:
+\begin{itemize}
+\item $R^i_{\varepsilon,\lambda}\cup\{(c_i,c_i,c_i)\}$;
+\item $S=\Gamma_1\times\{c_2\}\cup\{c_1\}\times\Gamma_2$.
+\end{itemize}
+
+\paragraph{The structure $\mathbf T$.} Its universe is $H^3$; write
+$z=(z^1,z^2,z^3)$ and call $\pi(z^3)$ the \emph{marker}.
+\begin{itemize}
+\item An element of marker $0$ has \emph{value} $t(z)=\pi(z^1)\in\Z_q$ and
+\emph{selector} $\sigma(z)=\pi(z^2)$.
+\item An element of marker $1$ has selector $\sigma(z)=\pi(z^1)$ and value
+$e(z)\in E$, the $E$-part of $z^1$.
+\end{itemize}
+The relations of $\mathbf T$, one for each relation of $\mathbf A$, are:
+\begin{itemize}
+\item[] $R^1_{\varepsilon,\lambda}$: all markers $0$, a common selector $\sigma$,
+and $\varepsilon\cdot t=(1-\sigma)\lambda$;
+\item[] $R^2_{\varepsilon,\lambda}$: all markers $1$, a common selector $\sigma$,
+and $\varepsilon\cdot e=N_\sigma\lambda$;
+\item[] $S$: the first element has marker $0$, the second has marker $1$, and
+their selectors agree.
+\end{itemize}
+So the $\Z_q$-relations are active at selector $0$ and homogeneous at selector $1$.
+The $E$-relations are homogeneous at selector $0$ and active at selector $1$.
+At every other selector both are twisted but still active.
+
+\begin{lemma}\label{lem:Tpp}
+$\mathbf T$ is a $3$rd pp-power of $H^{[3]}$.
+\end{lemma}
+\begin{proof}
+We go through the conditions that occur.
+\begin{itemize}
+\item \emph{Markers and equal selectors.} The markers are unary cosets
+$\pi^{-1}(0)$ and $\pi^{-1}(1)$. Equality of selectors is the binary subgroup
+$\{(x,y):\pi x=\pi y\}$.
+\item \emph{The $\Z_q$-condition.} It is the $\pi$-preimage of the affine
+hyperplane $\{(t,\sigma):\varepsilon\cdot t+\lambda\sigma=\lambda\}$ of $\Z_q^4$.
+That is the conjunction of two ternary affine relations sharing one auxiliary
+variable.
+\item \emph{The $E$-condition on $(z^1_1,z^1_2,z^1_3)$.} Let $U=\{u\in
+E^3:\varepsilon\cdot u=0\}$, which is invariant under the diagonal action of
+$\Z_q$. Pick $d\in E^3$ with $\varepsilon\cdot d=(\rho(1)-1)^{-1}\lambda$. The
+conjugate subgroup $(-d,0)\,(U\rtimes\mathrm{diag}\,\Z_q)\,(d,0)$ of $H^3$
+consists of the tuples $((-d_i+u_i+\rho(s)d_i,s))_i$ with $u\in U$. Applying
+$\varepsilon\cdot$ to these gives
+$(\rho(s)-1)(\rho(1)-1)^{-1}\lambda=N_s\lambda$. So this condition is a subgroup
+of $H^3$.
+\item \emph{The relation $S$.} It combines markers and an equality of selectors.
+\end{itemize}
+\end{proof}
+
+\begin{proposition}\label{prop:T}
+(a) The map $\mathbf A\to\mathbf T$ sending
+\begin{itemize}
+\item $t\in\Z_q$ to the element of marker $0$, selector $0$ and value $t$;
+\item $c_1$ to the element of marker $0$, selector $1$ and value $0$;
+\item $a\in E$ to the element with $z^1=(a,1)$ and marker $1$;
+\item $c_2$ to the element with $z^1=(0,0)$ and marker $1$;
+\end{itemize}
+(other coordinates trivial) is an injective homomorphism.
+
+(b) Let $\mathbf B_1$ and $\mathbf B_2$ be Tseitin systems over $\Z_q$ and $E$
+on connected $3$-regular graphs, each with nonzero total charge, and let
+$\mathbf B=\mathrm{OR}[\mathbf B_1,\mathbf B_2]$ be their or-instance, in which
+$S^{\mathbf B}=B_1\times B_2$. Then $\mathbf B\not\to\mathbf T$.
+\end{proposition}
+\begin{proof}
+(a) For example, a tuple of $R^1_{\varepsilon,\lambda}$ goes to elements of
+selector $0$ with $\varepsilon\cdot t=\lambda=(1-0)\lambda$; the tuple
+$(c_1,c_1,c_1)$ goes to selector $1$ and values $0$, and $0=(1-1)\lambda$. A tuple
+of $R^2_{\varepsilon,\lambda}$ goes to selector $1$, where $N_1=1$, and
+$(c_2,c_2,c_2)$ to selector $0$ and values $0$, where $N_0=0$. Finally $S$ goes to
+pairs with selectors $(0,0)$ or $(1,1)$.
+
+(b) Suppose $g\colon\mathbf B\to\mathbf T$.
+\begin{itemize}
+\item Every variable of $\mathbf B_1$ lies in a $\Z_q$-relation and so has
+marker $0$; every variable of $\mathbf B_2$ has marker $1$.
+\item Each constraint forces a common selector on its scope, and the graphs are
+connected, so all variables of $\mathbf B_i$ share one selector. Via $S$, these
+two selectors agree; call the common value $j$.
+\item The values of $\mathbf B_1$ then solve the Tseitin system over $\Z_q$ with
+charges multiplied by $1-j$. The values of $\mathbf B_2$ solve the one over $E$
+with charges multiplied by $N_j$.
+\item A Tseitin system is solvable iff its total charge is
+$0$~\cite[\S4]{LP25}. If $j=1$, the $E$-system has its original nonzero charge.
+If $j\ne1$, the $\Z_q$-system has total charge $(1-j)\ne0$ times the original
+one.
+\end{itemize}
+Either way we reach a contradiction.
+\end{proof}
+
+\subsection{Lower bounds}
+
+\begin{lemma}[Lichter--Pago]\label{lem:LPgen}
+Let $\mathbf A$, $\mathbf B_1$, $\mathbf B_2$, $\mathbf B$ be as above, with the
+graphs taken from a family of $3$-regular $2$-connected expanders. Let $\mathbf
+B'$ be the disjoint union of $\mathbf B$ with a structure consisting of one tuple
+in one relation of $\mathbf A$ (so $\mathbf B'\not\to\mathbf A$ as well). Then:
+\begin{itemize}
+\item $\Z$-affine $k(\size{\mathbf B})$-consistency accepts $\mathbf B$, for
+every nondecreasing $k\in o(n)$, once the graph is large enough;
+\item BLP+AIP accepts $\mathbf B$;
+\item CLAP accepts $\mathbf B'$.
+\end{itemize}
+\end{lemma}
+\begin{proof}
+This is the content of the proofs of~\cite[Thms.~5.2, 5.5, 5.7]{LP25}, which
+treat $\Gamma_1=\Z_2$ and $\Gamma_2=\Z_3$. Those proofs use the two groups only
+through two facts:
+\begin{itemize}
+\item a $p$-solution and a $q$-solution with coprime $p,q$ combine to an integer
+solution~\cite[Lemma~2.2]{LP25};
+\item Tseitin systems over a $p$-group have $p$-solutions supported on robustly
+consistent partial assignments, also when one of them is fixed to
+$1$~\cite[Lemma~4.10, Cor.~4.13]{LP25}.
+\end{itemize}
+Both hold for the $q$-group $\Z_q$ and the $p$-group $E$. The or-construction
+lemmas~\cite[Lemmas~3.6--3.9]{LP25} are stated for arbitrary templates. The
+instances use only the Tseitin relations, so restricting $\Gamma_i^{[3]}$ to them
+changes neither the partial homomorphisms nor the systems.
+
+For CLAP, the proof of~\cite[Thm.~5.7]{LP25} shows that the variant
+$\mathrm{CLAP}'$ accepts $\mathbf B$. That variant runs the pruning of CLAP and
+then one unpinned BLP+AIP on the pruned sets. The proof of~\cite[Lemma~5.6]{LP25}
+then shows that CLAP accepts $\mathbf B'$: the extra tuple is pinned in Step~(4)
+without affecting $\mathbf B$.
+\end{proof}
+
+\begin{lemma}\label{lem:templatehom}
+Let $e\colon\mathbf A\to\mathbf T$ be an injective homomorphism. If $\Z$-affine
+$k$-consistency, BLP+AIP or CLAP accepts an instance $\mathbf B$ over $\mathbf A$,
+it accepts $\mathbf B$ over $\mathbf T$.
+\end{lemma}
+\begin{proof}
+For $\Z$-affine consistency this is Lemma~\ref{lem:transfer} with
+$\iota_X(f)=e\circ f$ (Lean: \texttt{accepts\_of\_template\_hom}). For BLP+AIP and
+CLAP, relabel the rational and integer solutions along $e$ and extend them by $0$.
+This gives solutions of the corresponding systems over $\mathbf T$.
+\begin{itemize}
+\item A relative interior point over $\mathbf T$ has support containing the image
+of every feasible support. So the support condition of BLP+AIP survives.
+\item In CLAP, induction over the pruning rounds shows that no image of a tuple
+surviving over $\mathbf A$ is pruned over $\mathbf T$. Its pinned BLP solution,
+pushed forward, vanishes on all tuples pruned so far. The pinned run of
+BLP+AIP in Step~(4) then transfers as in the previous item.
+\end{itemize}
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:B}]
+Let $H$ be a section of $G$ as in Lemma~\ref{lem:schmidt}, and $\mathbf T$ as
+above. By Lemmas~\ref{lem:LPgen} and~\ref{lem:templatehom} and
+Proposition~\ref{prop:T}, each of the three algorithms accepts instances ($\mathbf
+B$, or $\mathbf B'$ for CLAP) with no homomorphism to $\mathbf T$; note
+$\mathbf B'\not\to\mathbf T$ because $\mathbf B\not\to\mathbf T$. For $\Z$-affine consistency this holds at every nondecreasing
+sublinear level, and the instances have size linear in the number of edges. So
+none of them solves $\Csp(\mathbf T)$.
+
+Now $\mathbf T$ is pp-constructible from $G^{[3]}$, by Lemma~\ref{lem:Tpp} and
+Section~\ref{sec:prelim}. If $\Z$-affine consistency solved $\Csp(G^{[3]})$ at a
+nondecreasing sublinear level, Theorem~\ref{thm:C} would give a sublinear level
+for $\mathbf T$. BLP+AIP and CLAP are characterized by minor
+conditions~\cite{BGWZ20,CZ23}, so their success would also transfer to
+$\mathbf T$.
+\end{proof}
+
+\subsection{The case \texorpdfstring{$S_3$}{S3}: the full template of Lichter and Pago}
+
+For $G=S_3$ one can avoid re-reading the proofs in~\cite{LP25}, because $S_3^{[3]}$
+pp-constructs their template $\mathbf A_7=\ORT[\Z_2^{[3]},\Z_3^{[3]}]$ itself,
+with all ternary cosets. Write $S_3=\Z_3\rtimes\Z_2=\{(a,s)\}$, with $\sg(a,s)=s$
+and $\rot(a,s)=a$. Let $\mathbf P$ have universe $S_3^3$; markers and selectors
+are as for $\mathbf T$ (with $q=2$, $p=3$). The relations are as follows.
+\begin{itemize}
+\item For a coset $R=R_0+w$ of $\Z_2^3$, with $w\in R$: $(z_1,z_2,z_3)$ with all
+markers $0$, a common selector $\sigma$, and
+$(\sg z_1^1,\sg z_2^1,\sg z_3^1)+\sigma w\in R$.
+\item For a coset $R'=R'_0+w'$ of $\Z_3^3$: all markers $1$, the signs $\sg z_i^1$
+equal to a common $s$, and $(\rot z_i^1)_i\in R'_0+s\,w'$.
+\item $S^{\mathbf P}$ as for $\mathbf T$.
+\end{itemize}
+The third condition is a subgroup of $S_3^3$: for tuples with common signs $s,s'$,
+the product has rotation part in $R'_0+sw'+(-1)^s s'w'=R'_0+(s\oplus s')w'$. The
+four-bit parity conditions need one auxiliary variable, so $\mathbf P$ is a $3$rd
+pp-power of $S_3^{[3]}$.
+
+\begin{proposition}\label{prop:equiv}
+$\mathbf P$ and $\mathbf A_7$ are homomorphically equivalent.
+\end{proposition}
+\begin{proof}
+Define $h_2\colon\mathbf P\to\mathbf A_7$ by marker:
+\begin{itemize}
+\item marker $0$: $z\mapsto\sg z^1\in\Z_2$ if the selector is $0$, and
+$z\mapsto c_1$ otherwise;
+\item marker $1$: $z\mapsto\rot z^1\in\Z_3$ if $\sg z^1=1$, and $z\mapsto c_2$
+otherwise.
+\end{itemize}
+In the other direction, writing $1$ for the identity of $S_3$, let
+\[
+h_1\colon\ t\mapsto((0,t),1,1),\quad c_1\mapsto(1,(0,1),1),\quad
+b\mapsto((b,1),1,(0,1)),\quad c_2\mapsto(1,1,(0,1)).
+\]
+Checking the relations is direct, as in Proposition~\ref{prop:T}(a).
+\end{proof}
+
+So for $S_3$ (and every group with a section $S_3$) Theorem~\ref{thm:B} follows
+from the statements~\cite[Thm.~1.1, Thm.~5.2]{LP25}, Theorem~\ref{thm:C} and the
+minion characterizations, with no appeal to Lemma~\ref{lem:LPgen}.
+
+\subsection{Consequences}
+
+\begin{corollary}\label{cor:nilp}
+If $\Z$-affine $k$-consistency (at some nondecreasing level $k\in o(n)$), BLP+AIP
+or CLAP solves $\Csp(G^{[r]})$ for all $r$, then $G$ is nilpotent. Conversely,
+all three solve $\Csp(G^{[r]})$ for all $r$ when $G$ is $2$-nilpotent of odd
+order~\cite[Thm.~1.2]{LP25}.
+\end{corollary}
+
+\begin{corollary}\label{cor:sep}
+Let $G$ be a non-abelian group in $\mathcal C$, for example $S_3$, $A_4$ or
+$\Z_7\rtimes\Z_3$. For $r\ge3$, $\Csp(G^{[r]})$ is solved by $\Coh_k$ for every
+$k\ge\max(3,r)$. It is not solved by $\Z$-affine $k$-consistency at any
+nondecreasing level $k\in o(n)$, nor by BLP+AIP, nor by CLAP. Abelian coset-CSPs
+are solved by all of them~\cite[Thm.~1.2]{LP25}, so $S_3$ is the smallest group
+whose coset-CSPs separate these algorithms.
+\end{corollary}
+\begin{proof}
+Non-abelian groups in $\mathcal C$ are not nilpotent (Remark~\ref{rem:sylow}).
+Apply Theorems~\ref{thm:A} and~\ref{thm:B}.
+\end{proof}
+
+\begin{remark}
+The scripts \texttt{checks/ppconstruct\_schmidt.py} and
+\texttt{checks/ppconstruct\_or\_from\_s3.py} check the constructions of this
+section. The first covers $H\in\{S_3,D_{10},\Z_7\rtimes\Z_3,A_4,\Z_{11}\rtimes\Z_5,\mathbb F_2^3\rtimes\Z_7\}$:
+\begin{itemize}
+\item every relation of $\mathbf T$ is a coset;
+\item the map of Proposition~\ref{prop:T}(a) is a homomorphism;
+\item the matrices $N_s$ behave as claimed.
+\end{itemize}
+The second checks Proposition~\ref{prop:equiv} and the pp-definitions over $S_3$
+exhaustively. Theorem~\ref{thm:C} also extends to $\mathrm{BA}^k$: push forward the
+positive rational solution together with the integer one. Combined with the proof
+of~\cite[Thm.~5.5]{LP25}, this would give the same lower bound for $\mathrm{BA}^k$
+at sublinear levels. That extension is not formalized.
+\end{remark}
+
+\section{What is left of the open question}\label{sec:discussion}
+
+Let $\mathcal S$ be the class of finite templates solved by $\Coh$ at constant
+level. By Theorem~\ref{thm:C} it is closed under pp-constructions, and it is
+contained in the class of Taylor templates (by Theorem~\ref{thm:C} and the
+NP-complete lower bounds of~\cite{LP25,CGP26}).
+It contains the following templates, together with everything pp-constructible
+from them:
+\begin{itemize}
+\item bounded width templates;
+\item $G^{[r]}$ for $G$ abelian or $2$-nilpotent of odd order~\cite{LP25},
+since $\Coh$ is at least as strong as $\Z$-affine consistency;
+\item $G^{[r]}$ for $G\in\mathcal C$ (Theorem~\ref{thm:A});
+\item the $D_4$ template of~\cite{Zhu25}. By~\cite{BHZ26}, it is solved by
+the second level of AIP, hence by a level of their AC+AIP hierarchy, which is
+equivalent to $\Z$-affine $k$-consistency up to the
+parameter~\cite[Thm.~6.7]{BHZ26}. Its relations are cosets, but we do not know
+whether it has the same polymorphisms as $D_4^{[r]}$, so this does not settle
+$\Csp(D_4^{[r]})$.
+\end{itemize}
+
+For the weaker affine algorithms the picture is now sharper.
+Corollary~\ref{cor:nilp} shows that they can solve all coset-CSPs over $G$ only for
+nilpotent $G$. They succeed for $2$-nilpotent groups of odd order~\cite{LP25}. The
+remaining cases are $2$-groups and groups of nilpotency class at least $3$. By
+contrast, $\Coh$ succeeds on every group in $\mathcal C$, and on every group of order
+below $24$ except possibly the non-abelian $2$-groups.
+
+A tractable template outside $\mathcal S$, if one exists, must therefore not be
+pp-constructible from any of these. Among coset-CSPs, the groups not covered
+are:
+\begin{itemize}
+\item non-abelian $2$-groups, starting with $D_4$ and $Q_8$ (order $8$) and the
+nine non-abelian groups of order $16$; by Corollary~\ref{cor:small} these are the
+only uncovered groups of order below $24$;
+\item at order $24$: $S_4$, $\mathrm{SL}(2,3)$, and the other groups with a
+Sylow $2$-subgroup isomorphic to $D_4$ or $Q_8$. For the nilpotent ones,
+$\Z_3\times D_4$ and $\Z_3\times Q_8$, the coset-CSP splits along the coprime
+factors and reduces to $D_4$ and $Q_8$;
+\item odd $p$-groups of nilpotency class at least $3$;
+\item solvable groups with abelian Sylow subgroups but non-abelian action, such
+as $\mathbb F_5^2\rtimes S_3$;
+\item non-solvable groups such as $A_5$ and the $S_{18}$ of~\cite{LP25}.
+\end{itemize}
+For the solvable groups, the obstruction to our method is visible already in
+Lemma~\ref{lem:shape}. Without coprimality the fibre translations need not be
+coordinatewise: the script \texttt{checks/locality\_check.py} finds such cosets
+over $D_4$ and $\Z_9\rtimes\Z_3$. The $N$-part of an instance can then depend on
+the $Q$-part in a non-local way, and a single pinned local solution may no longer
+decide it. For $A_5$ and $S_{18}$ there is no abelian normal subgroup to start
+from at all.
+
+Two extensions of Theorem~\ref{thm:A} look within reach:
+\begin{itemize}
+\item drop the condition that $G$ acts on the factors through abelian groups.
+This needs higher-dimensional data in Lemma~\ref{lem:dichotomy};
+\item combine it with the level-$2$ argument of~\cite{BHZ26} to handle
+non-coprime extensions of exponent $2$.
+\end{itemize}
+
+\section{Verification}\label{sec:verify}
+
+\paragraph{Lean.} The directory \texttt{lean/} contains a Lean~4 (Mathlib)
+development of about $1400$ lines. Stability carries a Boolean parameter, so that
+every result is stated for both algorithms. It contains:
+\begin{itemize}
+\item $\Coh$ as a removal process, and its acceptance characterized by stable
+families for every removal order (\texttt{run\_accepts\_iff},
+\texttt{algAccepts\_iff});
+\item $\Z$-affine $k$-consistency as in~\cite{LP25} (largest consistent family,
+then one integer system), and its acceptance characterized by stable families
+(\texttt{affAlgAccepts\_iff});
+\item Lemma~\ref{lem:basic} (\texttt{accepts\_of\_hom}, \texttt{accepts\_mono},
+\texttt{Accepts.toAffine});
+\item the transfer lemma and its three instances (template homomorphisms,
+pp-powers, equality);
+\item the size bounds for the gadget instances;
+\item Theorem~\ref{thm:C} for both algorithms (\texttt{solves\_of\_ppConstr},
+\texttt{solves\_sublinear\_of\_ppConstr}, \texttt{solves\_true\_iff},
+\texttt{solves\_false\_iff}).
+\end{itemize}
+All of these depend only on \texttt{propext}, \texttt{Classical.choice} and
+\texttt{Quot.sound}; there is no \texttt{sorry}.
+
+\paragraph{Scripts.} All are plain Python with no dependencies.
+\begin{itemize}
+\item \texttt{checks/ppconstruct\_or\_from\_s3.py} checks
+Proposition~\ref{prop:equiv}, the coset property of $\mathbf P$ and its
+pp-definitions, exhaustively.
+\item \texttt{checks/decomp\_check.py} was written during an independent check of
+this draft. It builds the objects of Section~\ref{sec:A} exactly: Galois ring,
+Teichmüller group, characters, the modules $M_\chi$, points, blocks, components,
+coherent assignments, the systems $\cL_K(\gamma)$ and the sets $A_K$. On random
+instances of arity $2$--$3$, with repeated variables, it checks the following
+against brute force:
+\begin{itemize}
+\item the exact formula of Lemma~\ref{lem:shape};
+\item Lemma~\ref{lem:split}(b);
+\item the coherence of $c(\tau)$;
+\item Lemmas~\ref{lem:decomp} and~\ref{lem:dichotomy}.
+\end{itemize}
+It runs over 13 groups in $\mathcal C$: $S_3$, $D_{10}$, $D_{18}$ (giving
+$\Lambda=\Z/9$), $D_{30}$ (two primes), $\Z_5\rtimes\Z_4$, $\Z_7\rtimes\Z_3$,
+$\Z_7\rtimes\Z_6$, $\Z_7\rtimes S_3$ (non-abelian $Q$ and $\Sigma_C$), $A_4$
+($\Lambda=\mathbb F_4$), $\Z_7^2\rtimes\Z_3$ (with trivial-character points),
+$\Z_3^2\rtimes\Z_2$, $\Z_4^2\rtimes\Z_3$ ($\Lambda=\mathrm{GR}(4,2)$) and
+$\Z_2^3\rtimes\Z_7$ ($\Lambda=\mathbb F_8$). It found no failure. As a
+negative control, the flag \texttt{--mutant} replaces $\chi(q^\circ)^{-1}$ by
+$\chi(q^\circ)$ in the translations, and the check then reports failures.
+\item \texttt{checks/ppconstruct\_schmidt.py} checks the general construction of
+Section~\ref{sec:B} for six groups $E\rtimes\Z_q$: $S_3$, $D_{10}$,
+$\Z_7\rtimes\Z_3$, $A_4$, $\Z_{11}\rtimes\Z_5$ and $\mathbb F_2^3\rtimes\Z_7$. For
+each it verifies three things:
+\begin{itemize}
+\item every relation of $\mathbf T$ is a coset (a subgroup check on $H^3$, or an
+affine-subspace check for the $\Z_q$-relations);
+\item the map of Proposition~\ref{prop:T}(a) is a homomorphism;
+\item the identities $N_0=0$, $N_1=1$, and the invertibility of $N_s$ for
+$s\ne0$.
+\end{itemize}
+\item \texttt{checks/locality\_check.py} tests whether coordinatewise
+translations exist, as in Lemma~\ref{lem:shape}. They exist for every sampled
+coset over the coprime groups, and fail for many cosets over $D_4$ and
+$\Z_9\rtimes\Z_3$.
+\end{itemize}
+
+\paragraph{Not verified by machine.} The following are proved on paper only:
+\begin{itemize}
+\item Lemmas~\ref{lem:coherence} and~\ref{lem:pinning}, and the induction in
+Section~\ref{sec:A}. Running $\Coh_k$ end to end would need integer normal-form
+routines, and small instances do not separate it from $\Z$-affine consistency
+anyway.
+\item In Section~\ref{sec:B}, the following:
+\begin{itemize}
+\item the group theory of Lemma~\ref{lem:schmidt};
+\item the reading of the proofs of~\cite{LP25} in Lemma~\ref{lem:LPgen};
+\item the BLP+AIP and CLAP parts of Lemma~\ref{lem:templatehom};
+\item the minion-based steps.
+\end{itemize}
+\item The cited results.
+\end{itemize}
+
+\paragraph{Checks by reading.} An independent reader checked Sections~2--4 and
+the case $S_3$ of Section~\ref{sec:B}. It found no gap in the proofs, and its
+corrections are incorporated. The
+general part of Section~\ref{sec:B} was re-checked only by the author, against
+the text of~\cite{LP25}~(v3). There, Lemma~4.10 and Corollary~4.13 are stated
+for an arbitrary $p$-group, Lemma~2.2 for arbitrary coprime integers, and
+Lemmas~3.6--3.9 for arbitrary templates. The re-check found one error: CLAP
+accepts $\mathbf B'$ rather than $\mathbf B$. It is corrected in
+Lemma~\ref{lem:LPgen}.
+
+\begin{thebibliography}{99}
+\bibitem{BHZ26} L.~Barto, M.~Hadek and D.~Zhuk. Toward a uniform algorithm and
+uniform reduction for constraint problems. arXiv:2604.06335, 2026.
+\bibitem{BOP18} L.~Barto, J.~Opr\v{s}al and M.~Pinsker. The wonderland of
+reflections. \emph{Israel J. Math.} 223, 2018.
+\bibitem{BGWZ20} J.~Brakensiek, V.~Guruswami, M.~Wrochna and S.~\v{Z}ivn\'y. The
+power of the combined basic linear programming and affine relaxation for promise
+constraint satisfaction problems. \emph{SIAM J. Comput.} 49(6), 2020.
+\bibitem{CZ23} L.~Ciardo and S.~\v{Z}ivn\'y. CLAP: A new algorithm for promise
+CSPs. \emph{SIAM J. Comput.} 52(1), 2023.
+\bibitem{CGP26} J.~Conneryd, Y.~Ghannane and S.~Pang. Lower bounds for CSP
+hierarchies through ideal reduction. \emph{SODA} 2026; arXiv:2511.17272.
+\bibitem{DO24} V.~Dalmau and J.~Opr\v{s}al. Local consistency as a reduction
+between constraint satisfaction problems. \emph{LICS} 2024.
+\bibitem{LP25} M.~Lichter and B.~Pago. Limitations of affine integer relaxations
+for solving constraint satisfaction problems. \emph{ICALP} 2025;
+arXiv:2407.09097v3.
+\bibitem{OC22} A.~\'O~Conghaile. Cohomology in constraint satisfaction and
+structure isomorphism. \emph{MFCS} 2022.
+\bibitem{Hup67} B.~Huppert. \emph{Endliche Gruppen I}. Springer, 1967. (Schmidt's
+theorem on minimal non-nilpotent groups.)
+\bibitem{Rob96} D.~J.~S.~Robinson. \emph{A Course in the Theory of Groups}, 2nd
+ed. Springer, 1996. (Schur--Zassenhaus theorem, vanishing of cohomology in
+coprime order, and the structure of groups with cyclic Sylow subgroups.)
+\bibitem{Wan03} Z.-X.~Wan. \emph{Lectures on Finite Fields and Galois Rings}.
+World Scientific, 2003.
+\bibitem{Zhu25} D.~Zhuk. Singleton algorithms for the constraint satisfaction
+problem. arXiv:2509.18434v3, 2026.
+\end{thebibliography}
+
+\end{document}
