@@ -1,0 +1,11 @@
+S3      |G|=  6 n=5 r=2: {'interesting': 38, 'unary_ok': 38, 'unary_fail': 0, 'a1_ok': 200, 'a1_fail': 0}
+D5      |G|= 10 n=4 r=2: {'interesting': 46, 'unary_ok': 46, 'unary_fail': 0, 'a1_ok': 200, 'a1_fail': 0}
+Z7:Z3   |G|= 21 n=3 r=2: {'interesting': 67, 'unary_ok': 67, 'unary_fail': 0, 'a1_ok': 200, 'a1_fail': 0}
+Z5:Z4   |G|= 20 n=3 r=2: {'interesting': 44, 'unary_ok': 44, 'unary_fail': 0, 'a1_ok': 200, 'a1_fail': 0}
+A4      |G|= 12 n=4 r=2: {'interesting': 82, 'unary_ok': 82, 'unary_fail': 0, 'a1_ok': 200, 'a1_fail': 0}
+D4      |G|=  8 n=5 r=2: {'interesting': 61, 'unary_ok': 61, 'unary_fail': 0, 'a1_ok': 117, 'a1_fail': 83}
+Z9:Z3   |G|= 27 n=3 r=2: {'interesting': 79, 'unary_ok': 79, 'unary_fail': 0, 'a1_ok': 100, 'a1_fail': 100}
+S3      |G|=  6 n=5 r=3: {'interesting': 7, 'unary_ok': 7, 'unary_fail': 0, 'a1_ok': 200, 'a1_fail': 0}
+D5      |G|= 10 n=4 r=3: {'interesting': 4, 'unary_ok': 4, 'unary_fail': 0, 'a1_ok': 200, 'a1_fail': 0}
+A4      |G|= 12 n=4 r=3: {'interesting': 11, 'unary_ok': 11, 'unary_fail': 0, 'a1_ok': 200, 'a1_fail': 0}
+D4      |G|=  8 n=5 r=3: {'interesting': 7, 'unary_ok': 7, 'unary_fail': 0, 'a1_ok': 62, 'a1_fail': 138}

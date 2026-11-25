@@ -1,0 +1,6 @@
+S3 = Z3:Z2: p=3 q=2 |E|=3 -- all checks passed
+D10 = Z5:Z2: p=5 q=2 |E|=5 -- all checks passed
+Z7:Z3: p=7 q=3 |E|=7 -- all checks passed
+A4 = F2^2:Z3: p=2 q=3 |E|=4 -- all checks passed
+Z11:Z5: p=11 q=5 |E|=11 -- all checks passed
+F2^3:Z7: p=2 q=7 |E|=8 -- all checks passed

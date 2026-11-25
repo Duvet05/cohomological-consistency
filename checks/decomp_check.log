@@ -1,0 +1,27 @@
+S3                   |G|=  6 [p=3: a=1 f=1 |mu|=2 chars=2 nonzero M_chi=1]
+     {'shape_ok': 461, 'split_ok': 1594, 'C0_ok': 454, 'dich_ok': 143, 'singleton_components': 9, 'decomp_ok': 155, 'tau_solvable': 93, 'tau_unsolvable': 62}
+D5                   |G|= 10 [p=5: a=1 f=1 |mu|=4 chars=2 nonzero M_chi=1]
+     {'shape_ok': 454, 'split_ok': 5333, 'C0_ok': 406, 'dich_ok': 149, 'singleton_components': 19, 'decomp_ok': 153, 'tau_solvable': 76, 'tau_unsolvable': 77}
+Z5:Z4                |G|= 20 [p=5: a=1 f=1 |mu|=4 chars=4 nonzero M_chi=1]
+     {'shape_ok': 454, 'split_ok': 5663, 'C0_ok': 1574, 'dich_ok': 165, 'singleton_components': 29, 'decomp_ok': 464, 'tau_solvable': 239, 'tau_unsolvable': 225}
+Z7:Z3                |G|= 21 [p=7: a=1 f=1 |mu|=6 chars=3 nonzero M_chi=1]
+     {'shape_ok': 458, 'split_ok': 14949, 'C0_ok': 754, 'dich_ok': 162, 'singleton_components': 18, 'decomp_ok': 244, 'tau_solvable': 152, 'tau_unsolvable': 92}
+Z7:Z6                |G|= 42 [p=7: a=1 f=1 |mu|=6 chars=6 nonzero M_chi=1]
+     {'shape_ok': 437, 'split_ok': 5924, 'C0_ok': 9094, 'dich_ok': 226, 'singleton_components': 25, 'decomp_ok': 2466, 'tau_solvable': 1712, 'tau_unsolvable': 754}
+D9                   |G|= 18 [p=3: a=2 f=1 |mu|=2 chars=2 nonzero M_chi=1]
+     {'shape_ok': 443, 'split_ok': 30891, 'C0_ok': 392, 'dich_ok': 149, 'singleton_components': 6, 'decomp_ok': 149, 'tau_solvable': 71, 'tau_unsolvable': 78}
+D15                  |G|= 30 [p=3: a=1 f=1 |mu|=2 chars=2 nonzero M_chi=1, p=5: a=1 f=1 |mu|=4 chars=2 nonzero M_chi=1]
+     {'shape_ok': 451, 'split_ok': 31604, 'C0_ok': 856, 'dich_ok': 374, 'singleton_components': 46, 'decomp_ok': 174, 'tau_solvable': 68, 'tau_unsolvable': 106}
+Z7:S3(sign)          |G|= 42 [p=7: a=1 f=1 |mu|=6 chars=2 nonzero M_chi=1]
+     {'shape_ok': 437, 'split_ok': 4865, 'C0_ok': 5385, 'dich_ok': 155, 'singleton_components': 7, 'decomp_ok': 1564, 'tau_solvable': 1354, 'tau_unsolvable': 210}
+A4                   |G|= 12 [p=2: a=1 f=2 |mu|=3 chars=3 nonzero M_chi=2]
+     {'shape_ok': 461, 'split_ok': 5798, 'C0_ok': 2628, 'dich_ok': 230, 'singleton_components': 13, 'decomp_ok': 460, 'tau_solvable': 227, 'tau_unsolvable': 233}
+Z7^2:Z3 diag(1,2)    |G|=147 [p=7: a=1 f=1 |mu|=6 chars=3 nonzero M_chi=2]
+     {'shape_ok': 432, 'split_ok': 339468, 'C0_ok': 1901, 'dich_ok': 303, 'singleton_components': 33, 'decomp_ok': 503, 'tau_solvable': 245, 'tau_unsolvable': 258}
+Z3^2:Z2 diag(1,-1)   |G|= 18 [p=3: a=1 f=1 |mu|=2 chars=2 nonzero M_chi=2]
+     {'shape_ok': 443, 'split_ok': 8700, 'C0_ok': 481, 'dich_ok': 166, 'singleton_components': 8, 'decomp_ok': 149, 'tau_solvable': 45, 'tau_unsolvable': 104}
+Z4^2:Z3              |G|= 48 [p=2: a=2 f=2 |mu|=3 chars=3 nonzero M_chi=2]
+     {'shape_ok': 447, 'split_ok': 42930, 'C0_ok': 1654, 'dich_ok': 284, 'singleton_components': 10, 'decomp_ok': 382, 'tau_solvable': 160, 'tau_unsolvable': 222}
+Z2^3:Z7              |G|= 56 [p=2: a=1 f=3 |mu|=7 chars=7 nonzero M_chi=3]
+     {'shape_ok': 441, 'split_ok': 43742, 'C0_ok': 202982, 'dich_ok': 1028, 'singleton_components': 141, 'decomp_ok': 18576, 'tau_solvable': 15289, 'tau_unsolvable': 3287}
+python3 -I decomp_check.py 150 1  653.88s user 4.50s system 97% cpu 11:16.30 total

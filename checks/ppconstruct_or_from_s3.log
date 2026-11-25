@@ -1,0 +1,8 @@
+cosets of subgroups: Z2^3 -> 51, Z3^3 -> 184
+h2 : Delta -> A7 is a homomorphism
+h1 : A7 -> Delta is a homomorphism
+Delta's Z2-relations are cosets (preimages of affine subspaces of Z2^9)
+Delta's Z3-relations are cosets
+Delta's S relation is a coset (preimage of an affine subspace of Z2^6)
+Delta's Z2-relations are pp-definable from ternary cosets of S3 (at most 1 auxiliary variable per relation)
+all checks passed
